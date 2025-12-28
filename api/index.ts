@@ -113,19 +113,27 @@ function isRedisConfigured(): boolean {
   return !!process.env.REDIS_URL;
 }
 
-// Redis key prefixes
-const REDIS_PREFIX = {
-  pendingAuth: 'mcp:pending:',
-  authCode: 'mcp:code:',
-  session: 'mcp:session:',
-};
+function getEnvironment(): string {
+  return process.env.APP_ENVIRONMENT || 'production';
+}
+
+// Redis key prefixes (environment-scoped)
+function getRedisPrefix() {
+  const env = getEnvironment();
+  return {
+    pendingAuth: `mcp:${env}:pending:`,
+    authCode: `mcp:${env}:code:`,
+    session: `mcp:${env}:session:`,
+  };
+}
 
 // Storage functions with Redis support
 async function storePendingAuth(kobanaState: string, auth: PendingAuth): Promise<void> {
   const redis = getRedisClient();
   if (redis) {
+    const prefix = getRedisPrefix();
     await redis.setex(
-      REDIS_PREFIX.pendingAuth + kobanaState,
+      prefix.pendingAuth + kobanaState,
       PENDING_AUTH_TTL,
       JSON.stringify(auth)
     );
@@ -135,7 +143,8 @@ async function storePendingAuth(kobanaState: string, auth: PendingAuth): Promise
 async function getPendingAuth(kobanaState: string): Promise<PendingAuth | null> {
   const redis = getRedisClient();
   if (redis) {
-    const data = await redis.get(REDIS_PREFIX.pendingAuth + kobanaState);
+    const prefix = getRedisPrefix();
+    const data = await redis.get(prefix.pendingAuth + kobanaState);
     if (data) {
       return JSON.parse(data) as PendingAuth;
     }
@@ -146,15 +155,17 @@ async function getPendingAuth(kobanaState: string): Promise<PendingAuth | null> 
 async function deletePendingAuth(kobanaState: string): Promise<void> {
   const redis = getRedisClient();
   if (redis) {
-    await redis.del(REDIS_PREFIX.pendingAuth + kobanaState);
+    const prefix = getRedisPrefix();
+    await redis.del(prefix.pendingAuth + kobanaState);
   }
 }
 
 async function storeAuthCode(code: string, authCode: AuthCode): Promise<void> {
   const redis = getRedisClient();
   if (redis) {
+    const prefix = getRedisPrefix();
     await redis.setex(
-      REDIS_PREFIX.authCode + code,
+      prefix.authCode + code,
       AUTH_CODE_TTL,
       JSON.stringify(authCode)
     );
@@ -164,7 +175,8 @@ async function storeAuthCode(code: string, authCode: AuthCode): Promise<void> {
 async function getAuthCode(code: string): Promise<AuthCode | null> {
   const redis = getRedisClient();
   if (redis) {
-    const data = await redis.get(REDIS_PREFIX.authCode + code);
+    const prefix = getRedisPrefix();
+    const data = await redis.get(prefix.authCode + code);
     if (data) {
       return JSON.parse(data) as AuthCode;
     }
@@ -175,15 +187,17 @@ async function getAuthCode(code: string): Promise<AuthCode | null> {
 async function deleteAuthCode(code: string): Promise<void> {
   const redis = getRedisClient();
   if (redis) {
-    await redis.del(REDIS_PREFIX.authCode + code);
+    const prefix = getRedisPrefix();
+    await redis.del(prefix.authCode + code);
   }
 }
 
 async function storeSession(mcpToken: string, session: ActiveSession): Promise<void> {
   const redis = getRedisClient();
   if (redis) {
+    const prefix = getRedisPrefix();
     await redis.setex(
-      REDIS_PREFIX.session + mcpToken,
+      prefix.session + mcpToken,
       SESSION_TTL,
       JSON.stringify(session)
     );
@@ -193,7 +207,8 @@ async function storeSession(mcpToken: string, session: ActiveSession): Promise<v
 async function getSession(mcpToken: string): Promise<ActiveSession | null> {
   const redis = getRedisClient();
   if (redis) {
-    const data = await redis.get(REDIS_PREFIX.session + mcpToken);
+    const prefix = getRedisPrefix();
+    const data = await redis.get(prefix.session + mcpToken);
     if (data) {
       return JSON.parse(data) as ActiveSession;
     }
@@ -658,6 +673,7 @@ function handleInfo(res: VercelResponse): void {
   if (isOAuthConfigured()) {
     response.oauth = {
       enabled: true,
+      environment: getEnvironment(),
       redis_configured: isRedisConfigured(),
       metadata_endpoint: '/.well-known/oauth-authorization-server',
       authorization_endpoint: '/authorize',
