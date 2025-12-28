@@ -155,4 +155,11 @@ npm publish
 
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Links
+
+- [Kobana Website](https://www.kobana.com.br)
+- [API Documentation](https://developers.kobana.com.br)
+- [API V2 Specification](https://raw.githubusercontent.com/universokobana/kobana-api-specs/main/swagger/v2_0/kobana-api-v2_0-openapi-3_1.json)
+- [GitHub Repository](https://github.com/universokobana/kobana-mcp-servers)
