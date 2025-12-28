@@ -1,0 +1,22 @@
+{
+  "name": "kobana-mcp-servers",
+  "version": "1.0.0",
+  "description": "Kobana MCP Servers Monorepo",
+  "private": true,
+  "workspaces": [
+    "mcp-admin",
+    "mcp-charge",
+    "mcp-data",
+    "mcp-edi",
+    "mcp-financial",
+    "mcp-payment",
+    "mcp-transfer",
+    "vercel-mcp"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "build:vercel": "npm run build --workspace=vercel-mcp"
+  },
+  "author": "Kobana",
+  "license": "MIT"
+}

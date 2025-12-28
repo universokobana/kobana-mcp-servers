@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "baseUrl": "..",
+    "paths": {
+      "mcp-admin/*": ["mcp-admin/*"],
+      "mcp-charge/*": ["mcp-charge/*"],
+      "mcp-data/*": ["mcp-data/*"],
+      "mcp-edi/*": ["mcp-edi/*"],
+      "mcp-financial/*": ["mcp-financial/*"],
+      "mcp-payment/*": ["mcp-payment/*"],
+      "mcp-transfer/*": ["mcp-transfer/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

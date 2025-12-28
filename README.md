@@ -366,6 +366,8 @@ kobana-mcp-server/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
+├── package.json            # Monorepo root (npm workspaces)
+├── vercel.json             # Vercel deployment config
 ├── specs/                  # API specifications (OpenAPI)
 ├── docs/
 │   └── instructions.md
@@ -375,7 +377,8 @@ kobana-mcp-server/
 ├── mcp-edi/                # kobana-mcp-edi package
 ├── mcp-financial/          # kobana-mcp-financial package
 ├── mcp-payment/            # kobana-mcp-payment package
-└── mcp-transfer/           # kobana-mcp-transfer package
+├── mcp-transfer/           # kobana-mcp-transfer package
+└── vercel-mcp/             # Unified server for Vercel deployment
 ```
 
 Each MCP package follows the same structure:
@@ -396,6 +399,75 @@ mcp-*/
     ├── tools/             # MCP tools
     └── types/             # TypeScript types & Zod schemas
 ```
+
+## Vercel Deployment (Unified Server)
+
+Deploy all MCP servers as a single Vercel project with path-based routing.
+
+### Endpoints
+
+Once deployed to `mcp.kobana.com.br`:
+
+| Namespace | SSE Endpoint | Description |
+|-----------|--------------|-------------|
+| Admin | `mcp.kobana.com.br/admin/sse` | Certificates, connections, users |
+| Charge | `mcp.kobana.com.br/charge/sse` | Pix charges, accounts |
+| Data | `mcp.kobana.com.br/data/sse` | Bank billet queries |
+| EDI | `mcp.kobana.com.br/edi/sse` | EDI boxes |
+| Financial | `mcp.kobana.com.br/financial/sse` | Accounts, balances |
+| Payment | `mcp.kobana.com.br/payment/sse` | Bank billets, taxes |
+| Transfer | `mcp.kobana.com.br/transfer/sse` | Pix, TED, internal |
+
+### Deploy to Vercel
+
+```bash
+# Clone repository
+git clone https://github.com/universokobana/kobana-mcp-servers.git
+cd kobana-mcp-servers
+
+# Deploy with Vercel CLI
+vercel
+
+# Set environment variable
+vercel env add KOBANA_ACCESS_TOKEN
+
+# Deploy to production
+vercel --prod
+```
+
+### Authentication
+
+Pass the access token via:
+
+1. **Environment variable**: Set `KOBANA_ACCESS_TOKEN` in Vercel
+2. **Request header**: `Authorization: Bearer <token>`
+
+### Claude Desktop with Remote MCP
+
+```json
+{
+  "mcpServers": {
+    "kobana-charge": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-remote", "https://mcp.kobana.com.br/charge/sse"],
+      "env": {
+        "AUTHORIZATION": "Bearer your_access_token"
+      }
+    }
+  }
+}
+```
+
+### Local Testing
+
+```bash
+cd vercel-mcp
+npm install
+npm run build
+PORT=3333 KOBANA_ACCESS_TOKEN=your_token npm start
+```
+
+See [vercel-mcp/README.md](./vercel-mcp/README.md) for full documentation.
 
 ## Development
 
