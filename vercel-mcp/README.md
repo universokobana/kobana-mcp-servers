@@ -2,19 +2,21 @@
 
 Unified MCP server for deploying all Kobana MCP namespaces on a single Vercel project.
 
+Uses the **Streamable HTTP transport** which is stateless and serverless-compatible.
+
 ## Endpoints
 
 All namespaces are available under a single domain:
 
-| Namespace | SSE Endpoint | Messages Endpoint |
-|-----------|--------------|-------------------|
-| Admin | `/admin/sse` | `/admin/messages` |
-| Charge | `/charge/sse` | `/charge/messages` |
-| Data | `/data/sse` | `/data/messages` |
-| EDI | `/edi/sse` | `/edi/messages` |
-| Financial | `/financial/sse` | `/financial/messages` |
-| Payment | `/payment/sse` | `/payment/messages` |
-| Transfer | `/transfer/sse` | `/transfer/messages` |
+| Namespace | MCP Endpoint | Description |
+|-----------|--------------|-------------|
+| Admin | `/admin/mcp` | Certificates, connections, users |
+| Charge | `/charge/mcp` | Pix charges, accounts |
+| Data | `/data/mcp` | Bank billet queries |
+| EDI | `/edi/mcp` | EDI boxes |
+| Financial | `/financial/mcp` | Accounts, balances |
+| Payment | `/payment/mcp` | Bank billets, taxes |
+| Transfer | `/transfer/mcp` | Pix, TED, internal |
 
 ### Global Endpoints
 
@@ -96,16 +98,16 @@ For a Vercel deployment at `mcp.kobana.com.br`:
   "mcpServers": {
     "kobana-charge": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-remote", "https://mcp.kobana.com.br/charge/sse"],
+      "args": ["-y", "mcp-remote", "https://mcp.kobana.com.br/charge/mcp"],
       "env": {
-        "AUTHORIZATION": "Bearer your_access_token"
+        "HEADER_Authorization": "Bearer your_access_token"
       }
     },
     "kobana-transfer": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-remote", "https://mcp.kobana.com.br/transfer/sse"],
+      "args": ["-y", "mcp-remote", "https://mcp.kobana.com.br/transfer/mcp"],
       "env": {
-        "AUTHORIZATION": "Bearer your_access_token"
+        "HEADER_Authorization": "Bearer your_access_token"
       }
     }
   }
@@ -121,9 +123,11 @@ curl https://mcp.kobana.com.br/
 # Get namespace info
 curl https://mcp.kobana.com.br/charge
 
-# Connect via SSE
-curl -N -H "Authorization: Bearer your_token" \
-  https://mcp.kobana.com.br/charge/sse
+# Initialize MCP session (Streamable HTTP)
+curl -X POST -H "Authorization: Bearer your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' \
+  https://mcp.kobana.com.br/charge/mcp
 ```
 
 ## Architecture

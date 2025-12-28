@@ -138,9 +138,9 @@ For sandbox/testing, add `KOBANA_API_URL`:
 | `KOBANA_ACCESS_TOKEN` | Yes | - | Bearer access token for Kobana API |
 | `KOBANA_API_URL` | No | `https://api.kobana.com.br` | Base URL for Kobana API |
 
-## HTTP/SSE Mode (Hosted)
+## Streamable HTTP Mode (Hosted)
 
-For remote deployments, each server has an HTTP mode:
+For remote deployments, each server has an HTTP mode using the Streamable HTTP transport (MCP specification compliant):
 
 ```bash
 PORT=3000 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-admin-http
@@ -392,7 +392,7 @@ mcp-*/
 ├── .npmignore
 └── src/
     ├── index.ts           # stdio entry point
-    ├── http-server.ts     # HTTP/SSE entry point
+    ├── http-server.ts     # Streamable HTTP entry point
     ├── server.ts          # MCP server
     ├── config.ts          # Configuration
     ├── api/               # API clients
@@ -408,15 +408,17 @@ Deploy all MCP servers as a single Vercel project with path-based routing.
 
 Once deployed to `mcp.kobana.com.br`:
 
-| Namespace | SSE Endpoint | Description |
+| Namespace | MCP Endpoint | Description |
 |-----------|--------------|-------------|
-| Admin | `mcp.kobana.com.br/admin/sse` | Certificates, connections, users |
-| Charge | `mcp.kobana.com.br/charge/sse` | Pix charges, accounts |
-| Data | `mcp.kobana.com.br/data/sse` | Bank billet queries |
-| EDI | `mcp.kobana.com.br/edi/sse` | EDI boxes |
-| Financial | `mcp.kobana.com.br/financial/sse` | Accounts, balances |
-| Payment | `mcp.kobana.com.br/payment/sse` | Bank billets, taxes |
-| Transfer | `mcp.kobana.com.br/transfer/sse` | Pix, TED, internal |
+| Admin | `mcp.kobana.com.br/admin/mcp` | Certificates, connections, users |
+| Charge | `mcp.kobana.com.br/charge/mcp` | Pix charges, accounts |
+| Data | `mcp.kobana.com.br/data/mcp` | Bank billet queries |
+| EDI | `mcp.kobana.com.br/edi/mcp` | EDI boxes |
+| Financial | `mcp.kobana.com.br/financial/mcp` | Accounts, balances |
+| Payment | `mcp.kobana.com.br/payment/mcp` | Bank billets, taxes |
+| Transfer | `mcp.kobana.com.br/transfer/mcp` | Pix, TED, internal |
+
+The server uses the Streamable HTTP transport, which is stateless and serverless-compatible.
 
 ### Deploy to Vercel
 
@@ -449,9 +451,9 @@ Pass the access token via:
   "mcpServers": {
     "kobana-charge": {
       "command": "npx",
-      "args": ["-y", "@anthropic/mcp-remote", "https://mcp.kobana.com.br/charge/sse"],
+      "args": ["-y", "mcp-remote", "https://mcp.kobana.com.br/charge/mcp"],
       "env": {
-        "AUTHORIZATION": "Bearer your_access_token"
+        "HEADER_Authorization": "Bearer your_access_token"
       }
     }
   }
