@@ -2,26 +2,20 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "name": "kobana-mcp",
-  "builds": [
-    {
-      "src": "vercel-mcp/dist/server.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 60
-      }
+  "functions": {
+    "vercel-mcp/dist/api/index.js": {
+      "maxDuration": 60
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "vercel-mcp/dist/server.js"
+      "source": "/(.*)",
+      "destination": "/vercel-mcp/dist/api/index.js"
     }
   ],
   "env": {
     "KOBANA_API_URL": "https://api.kobana.com.br"
   },
   "installCommand": "npm install",
-  "buildCommand": "npm run build",
-  "outputDirectory": "vercel-mcp/dist",
-  "framework": null
+  "buildCommand": "npm run build"
 }
