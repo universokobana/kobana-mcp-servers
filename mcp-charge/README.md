@@ -1,6 +1,8 @@
-# Kobana MCP Charge Server
+# kobana-mcp-charge
 
 MCP (Model Context Protocol) server for the Kobana Charge API v2. This server provides tools for managing Pix payments and accounts through the Kobana platform.
+
+[![npm version](https://badge.fury.io/js/kobana-mcp-charge.svg)](https://www.npmjs.com/package/kobana-mcp-charge)
 
 ## Features
 
@@ -8,12 +10,36 @@ MCP (Model Context Protocol) server for the Kobana Charge API v2. This server pr
 - **Pix Charges**: Create, list, update, cancel, and delete Pix charges
 - **Pix Commands**: Track and monitor operations executed on Pix charges
 
-## Installation
+## Quick Start with npx
+
+The easiest way to use this MCP server is with `npx`:
 
 ```bash
-cd mcp-charge
-npm install
-npm run build
+# Local mode (stdio)
+KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-charge
+
+# HTTP mode (hosted)
+KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-charge-http
+```
+
+## Installation
+
+### Global Installation
+
+```bash
+npm install -g kobana-mcp-charge
+
+# Then run:
+KOBANA_ACCESS_TOKEN=your_token kobana-mcp-charge
+```
+
+### Local Installation
+
+```bash
+npm install kobana-mcp-charge
+
+# Then run:
+KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-charge
 ```
 
 ## Configuration
@@ -32,33 +58,24 @@ To use the sandbox environment:
 ```bash
 export KOBANA_API_URL=https://api-sandbox.kobana.com.br
 export KOBANA_ACCESS_TOKEN=your_sandbox_token
+npx kobana-mcp-charge
 ```
 
-## Usage
-
-### Local Mode (stdio)
-
-Run the server locally using stdio transport:
-
-```bash
-npm start
-# or
-node dist/index.js
-```
-
-#### Claude Desktop Configuration
+## Usage with Claude Desktop
 
 Add to your Claude Desktop configuration file:
 
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
+### Using npx (Recommended)
+
 ```json
 {
   "mcpServers": {
     "kobana-charge": {
-      "command": "node",
-      "args": ["/path/to/mcp-charge/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "kobana-mcp-charge"],
       "env": {
         "KOBANA_ACCESS_TOKEN": "your_access_token"
       }
@@ -67,24 +84,58 @@ Add to your Claude Desktop configuration file:
 }
 ```
 
-### Hosted Mode (HTTP/SSE)
+### Using Global Installation
 
-Run the server as an HTTP service:
-
-```bash
-npm run start:http
-# or
-node dist/http-server.js
+```json
+{
+  "mcpServers": {
+    "kobana-charge": {
+      "command": "kobana-mcp-charge",
+      "env": {
+        "KOBANA_ACCESS_TOKEN": "your_access_token"
+      }
+    }
+  }
+}
 ```
 
-Configure with environment variables:
+### Sandbox Configuration
+
+```json
+{
+  "mcpServers": {
+    "kobana-charge": {
+      "command": "npx",
+      "args": ["-y", "kobana-mcp-charge"],
+      "env": {
+        "KOBANA_ACCESS_TOKEN": "your_sandbox_token",
+        "KOBANA_API_URL": "https://api-sandbox.kobana.com.br"
+      }
+    }
+  }
+}
+```
+
+## HTTP/SSE Mode (Hosted)
+
+Run the server as an HTTP service for remote deployments:
+
+```bash
+# Using npx
+PORT=3000 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-charge-http
+
+# Or with global install
+PORT=3000 KOBANA_ACCESS_TOKEN=your_token kobana-mcp-charge-http
+```
+
+### Environment Variables for HTTP Mode
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `3000` | HTTP server port |
 | `HOST` | `0.0.0.0` | HTTP server host |
 
-#### HTTP Endpoints
+### HTTP Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -93,7 +144,7 @@ Configure with environment variables:
 | `/sse` | GET | SSE connection (requires Authorization header) |
 | `/messages?sessionId=<id>` | POST | Send messages to session |
 
-#### Authentication for HTTP Mode
+### Authentication for HTTP Mode
 
 Pass the access token in the Authorization header:
 
@@ -182,18 +233,9 @@ X-Kobana-Api-Url: https://api-sandbox.kobana.com.br
 }
 ```
 
-## Development
+## About Kobana
 
-```bash
-# Watch mode
-npm run dev
-
-# Build
-npm run build
-
-# Clean
-npm run clean
-```
+Kobana is a financial automation platform. Learn more at: https://ai.kobana.com.br
 
 ## License
 

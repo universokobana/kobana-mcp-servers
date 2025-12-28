@@ -4,69 +4,74 @@ MCP (Model Context Protocol) servers for the Kobana API v2. These servers enable
 
 ## About Kobana
 
-Kobana is a financial automation platform. Learn more at: https://ai.kobana.com.br
+Kobana is a financial automation platform. Learn more at: https://www.kobana.com.br
 
 ## Available MCP Servers
 
-| Server | Namespace | Description | Status |
-|--------|-----------|-------------|--------|
-| [mcp-charge](./mcp-charge) | `charge` | Pix payments and accounts | Available |
+| Server | npm Package | Namespace | Description |
+|--------|-------------|-----------|-------------|
+| [mcp-charge](./mcp-charge) | `kobana-mcp-charge` | `charge` | Pix payments and accounts |
 
-## Quick Start
+## Quick Start with npx
 
-### 1. Clone and Install
-
-```bash
-git clone <repository-url>
-cd kobana-mcp-server
-
-# Install mcp-charge
-cd mcp-charge
-npm install
-npm run build
-```
-
-### 2. Configure Environment
+The easiest way to use these MCP servers is with `npx`:
 
 ```bash
-# Production
-export KOBANA_ACCESS_TOKEN=your_production_token
-
-# Sandbox
-export KOBANA_API_URL=https://api-sandbox.kobana.com.br
-export KOBANA_ACCESS_TOKEN=your_sandbox_token
+# Pix Payments (charge namespace)
+KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-charge
 ```
 
-### 3. Run
+## Usage with Claude Desktop
 
-#### Local Mode (Claude Desktop)
+Add to your Claude Desktop configuration file:
 
-```bash
-cd mcp-charge
-npm start
-```
-
-Configure Claude Desktop (`claude_desktop_config.json`):
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "kobana-charge": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-charge/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "kobana-mcp-charge"],
       "env": {
-        "KOBANA_ACCESS_TOKEN": "your_token"
+        "KOBANA_ACCESS_TOKEN": "your_access_token"
       }
     }
   }
 }
 ```
 
-#### Hosted Mode (HTTP Server)
+### Sandbox Environment
+
+```json
+{
+  "mcpServers": {
+    "kobana-charge": {
+      "command": "npx",
+      "args": ["-y", "kobana-mcp-charge"],
+      "env": {
+        "KOBANA_ACCESS_TOKEN": "your_sandbox_token",
+        "KOBANA_API_URL": "https://api-sandbox.kobana.com.br"
+      }
+    }
+  }
+}
+```
+
+## Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `KOBANA_ACCESS_TOKEN` | Yes | - | Bearer access token for Kobana API |
+| `KOBANA_API_URL` | No | `https://api.kobana.com.br` | Base URL for Kobana API |
+
+## HTTP/SSE Mode (Hosted)
+
+For remote deployments, use the HTTP mode:
 
 ```bash
-cd mcp-charge
-PORT=3000 npm run start:http
+PORT=3000 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-charge-http
 ```
 
 ## API Reference
@@ -74,6 +79,38 @@ PORT=3000 npm run start:http
 - **Production API**: https://api.kobana.com.br
 - **Sandbox API**: https://api-sandbox.kobana.com.br
 - **API Specification**: https://github.com/universokobana/kobana-api-specs
+
+## Available Tools
+
+### kobana-mcp-charge
+
+#### Pix Accounts
+
+| Tool | Description |
+|------|-------------|
+| `list_charge_pix_accounts` | List all Pix accounts |
+| `create_charge_pix_account` | Create a new Pix account |
+| `get_charge_pix_account` | Get a specific Pix account |
+| `update_charge_pix_account` | Update a Pix account |
+| `delete_charge_pix_account` | Delete a Pix account |
+
+#### Pix Charges
+
+| Tool | Description |
+|------|-------------|
+| `list_charge_pix` | List all Pix charges |
+| `create_charge_pix` | Create a new Pix charge |
+| `get_charge_pix` | Get a specific Pix charge |
+| `delete_charge_pix` | Delete a Pix charge |
+| `update_charge_pix` | Update a Pix charge |
+| `cancel_charge_pix` | Cancel a Pix charge |
+
+#### Pix Commands
+
+| Tool | Description |
+|------|-------------|
+| `list_charge_pix_commands` | List commands for a Pix charge |
+| `get_charge_pix_command` | Get a specific command |
 
 ## Project Structure
 
@@ -84,89 +121,37 @@ kobana-mcp-server/
 ├── docs/
 │   ├── instructions.md     # Development instructions
 │   └── implementation-plan.md
-└── mcp-charge/            # Charge namespace server
+└── mcp-charge/             # kobana-mcp-charge package
     ├── README.md
     ├── package.json
     ├── tsconfig.json
     └── src/
-        ├── index.ts       # stdio entry point
-        ├── http-server.ts # HTTP entry point
-        ├── server.ts      # MCP server
+        ├── index.ts        # stdio entry point
+        ├── http-server.ts  # HTTP entry point
+        ├── server.ts       # MCP server
         ├── config.ts
-        ├── api/           # API clients
-        ├── tools/         # MCP tools
-        └── types/         # TypeScript types
+        ├── api/            # API clients
+        ├── tools/          # MCP tools
+        └── types/          # TypeScript types
 ```
-
-## Available Tools
-
-### mcp-charge
-
-#### Pix Accounts (charge_pix_accounts)
-
-- `list_charge_pix_accounts` - List all Pix accounts
-- `create_charge_pix_account` - Create a new Pix account
-- `get_charge_pix_account` - Get a specific Pix account
-- `update_charge_pix_account` - Update a Pix account
-- `delete_charge_pix_account` - Delete a Pix account
-
-#### Pix Charges (charge_pix)
-
-- `list_charge_pix` - List all Pix charges
-- `create_charge_pix` - Create a new Pix charge
-- `get_charge_pix` - Get a specific Pix charge
-- `delete_charge_pix` - Delete a Pix charge
-- `update_charge_pix` - Update a Pix charge
-- `cancel_charge_pix` - Cancel a Pix charge
-
-#### Pix Commands (charge_pix_commands)
-
-- `list_charge_pix_commands` - List commands for a Pix charge
-- `get_charge_pix_command` - Get a specific command
-
-## Authentication
-
-All servers use Bearer token authentication. Obtain your access token from the Kobana platform.
-
-```
-Authorization: Bearer <access_token>
-```
-
-## Transport Modes
-
-### Local (stdio)
-
-- Communication via standard input/output
-- Best for local AI assistants like Claude Desktop
-- Entry point: `dist/index.js`
-
-### Hosted (HTTP/SSE)
-
-- HTTP server with SSE support
-- Best for remote/cloud deployments
-- Entry point: `dist/http-server.js`
-- Endpoints:
-  - `GET /` - Server info
-  - `GET /health` - Health check
-  - `GET /sse` - SSE connection
-  - `POST /messages?sessionId=<id>` - Message endpoint
 
 ## Development
 
-### Building
+### Building from Source
+
+```bash
+git clone https://github.com/universokobana/kobana-mcp-servers.git
+cd kobana-mcp-servers/mcp-charge
+npm install
+npm run build
+```
+
+### Publishing
 
 ```bash
 cd mcp-charge
-npm run build    # Build once
-npm run dev      # Watch mode
+npm publish
 ```
-
-### Adding New Namespaces
-
-1. Create a new folder `mcp-<namespace>`
-2. Follow the structure of `mcp-charge`
-3. Implement API clients and tools
-4. Update `servers.json`
 
 ## License
 

@@ -1,29 +1,47 @@
 {
-  "name": "@kobana/mcp-charge",
+  "name": "kobana-mcp-charge",
   "version": "1.0.0",
-  "description": "MCP Server for Kobana Charge API v2 (Pix)",
+  "description": "MCP Server for Kobana Charge API v2 (Pix payments)",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "mcp-charge": "dist/index.js"
+    "kobana-mcp-charge": "dist/index.js",
+    "kobana-mcp-charge-http": "dist/http-server.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "start:http": "node dist/http-server.js",
-    "lint": "eslint src/",
+    "prepublishOnly": "npm run build",
     "clean": "rm -rf dist"
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "kobana",
     "pix",
     "payments",
-    "api"
+    "api",
+    "brazil",
+    "fintech",
+    "claude",
+    "ai"
   ],
   "author": "Kobana",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/universokobana/kobana-mcp-servers.git"
+  },
+  "homepage": "https://github.com/universokobana/kobana-mcp-servers#readme",
+  "bugs": {
+    "url": "https://github.com/universokobana/kobana-mcp-servers/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^3.23.0"
