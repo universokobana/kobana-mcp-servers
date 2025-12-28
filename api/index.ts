@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { createHash, randomUUID } from 'crypto';
 
 // Import tools from each MCP package
 import { allTools as adminTools } from '../mcp-admin/dist/tools/index.js';
@@ -53,13 +54,119 @@ function getNamespaceByPath(pathname: string): NamespaceConfig | undefined {
   return namespaces.find(ns => pathname === ns.path || pathname.startsWith(ns.path + '/'));
 }
 
+// ============================================================================
+// OAuth 2.1 Implementation
+// ============================================================================
+
+interface OAuthConfig {
+  clientId: string;
+  clientSecret: string;
+  kobanaAppUrl: string;
+  mcpServerUrl: string;
+}
+
+interface PendingAuth {
+  codeChallenge: string;
+  codeChallengeMethod: string;
+  redirectUri: string;
+  clientId: string;
+  state: string;
+  kobanaState: string;
+  createdAt: number;
+}
+
+interface AuthCode {
+  kobanaToken: string;
+  codeChallenge: string;
+  codeChallengeMethod: string;
+  redirectUri: string;
+  createdAt: number;
+}
+
+interface ActiveSession {
+  kobanaToken: string;
+  createdAt: number;
+}
+
+// TTL constants
+const PENDING_AUTH_TTL = 10 * 60 * 1000; // 10 minutes
+const AUTH_CODE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// In-memory storage (Note: will reset on cold starts, consider using Vercel KV for production)
+const pendingAuths = new Map<string, PendingAuth>();
+const authCodes = new Map<string, AuthCode>();
+const activeSessions = new Map<string, ActiveSession>();
+
+function isOAuthConfigured(): boolean {
+  return !!(process.env.KOBANA_OAUTH_CLIENT_ID && process.env.KOBANA_OAUTH_CLIENT_SECRET);
+}
+
+function getOAuthConfig(): OAuthConfig {
+  const clientId = process.env.KOBANA_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.KOBANA_OAUTH_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('OAuth not configured');
+  }
+
+  return {
+    clientId,
+    clientSecret,
+    kobanaAppUrl: process.env.KOBANA_APP_URL || 'https://app.kobana.com.br',
+    mcpServerUrl: process.env.MCP_SERVER_URL || 'https://mcp.kobana.com.br',
+  };
+}
+
+function generateState(): string {
+  return randomUUID();
+}
+
+function generateCode(): string {
+  return randomUUID();
+}
+
+function generateToken(): string {
+  return `mcp_${randomUUID().replace(/-/g, '')}`;
+}
+
+function validatePKCE(codeVerifier: string, codeChallenge: string, method: string): boolean {
+  if (method !== 'S256') return false;
+  if (codeVerifier.length < 43 || codeVerifier.length > 128) return false;
+  if (!/^[A-Za-z0-9\-._~]+$/.test(codeVerifier)) return false;
+
+  const hash = createHash('sha256').update(codeVerifier, 'ascii').digest();
+  const expectedChallenge = hash.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  return expectedChallenge === codeChallenge;
+}
+
+function getKobanaTokenFromMcpToken(mcpToken: string): string | undefined {
+  const session = activeSessions.get(mcpToken);
+  if (session) {
+    return session.kobanaToken;
+  }
+  return undefined;
+}
+
 function getConfig(authHeader: string | null, apiUrlHeader: string | null): Config {
   let accessToken = process.env.KOBANA_ACCESS_TOKEN || '';
 
   if (authHeader) {
     const parts = authHeader.split(' ');
     if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-      accessToken = parts[1];
+      const token = parts[1];
+
+      // Check if this is an MCP OAuth token
+      if (token.startsWith('mcp_')) {
+        const kobanaToken = getKobanaTokenFromMcpToken(token);
+        if (kobanaToken) {
+          accessToken = kobanaToken;
+        } else {
+          throw new Error('Invalid or expired MCP token');
+        }
+      } else {
+        accessToken = token;
+      }
     }
   }
 
@@ -71,6 +178,230 @@ function getConfig(authHeader: string | null, apiUrlHeader: string | null): Conf
     accessToken,
     apiUrl: apiUrlHeader || process.env.KOBANA_API_URL || 'https://api.kobana.com.br',
   };
+}
+
+// ============================================================================
+// OAuth Handlers
+// ============================================================================
+
+function handleOAuthMetadata(res: VercelResponse): void {
+  const config = getOAuthConfig();
+  const baseUrl = config.mcpServerUrl;
+
+  res.status(200).json({
+    issuer: baseUrl,
+    authorization_endpoint: `${baseUrl}/authorize`,
+    token_endpoint: `${baseUrl}/token`,
+    scopes_supported: ['login'],
+    response_types_supported: ['code'],
+    response_modes_supported: ['query'],
+    grant_types_supported: ['authorization_code'],
+    code_challenge_methods_supported: ['S256'],
+    token_endpoint_auth_methods_supported: ['none'],
+    service_documentation: 'https://developers.kobana.com.br',
+  });
+}
+
+function handleOAuthAuthorize(req: VercelRequest, res: VercelResponse): void {
+  const config = getOAuthConfig();
+
+  const responseType = req.query.response_type as string;
+  const clientId = req.query.client_id as string;
+  const redirectUri = req.query.redirect_uri as string;
+  const codeChallenge = req.query.code_challenge as string;
+  const codeChallengeMethod = req.query.code_challenge_method as string;
+  const state = req.query.state as string;
+
+  // Validate required parameters
+  if (responseType !== 'code') {
+    res.status(400).json({ error: 'unsupported_response_type', error_description: 'Only response_type=code is supported' });
+    return;
+  }
+
+  if (!redirectUri) {
+    res.status(400).json({ error: 'invalid_request', error_description: 'redirect_uri is required' });
+    return;
+  }
+
+  if (!codeChallenge || codeChallengeMethod !== 'S256') {
+    res.status(400).json({ error: 'invalid_request', error_description: 'code_challenge with S256 method is required' });
+    return;
+  }
+
+  if (!state) {
+    res.status(400).json({ error: 'invalid_request', error_description: 'state is required' });
+    return;
+  }
+
+  // Generate kobana state and store pending auth
+  const kobanaState = generateState();
+
+  pendingAuths.set(kobanaState, {
+    codeChallenge,
+    codeChallengeMethod,
+    redirectUri,
+    clientId: clientId || 'claude',
+    state,
+    kobanaState,
+    createdAt: Date.now(),
+  });
+
+  // Redirect to Kobana OAuth
+  const kobanaAuthUrl = new URL(`${config.kobanaAppUrl}/oauth/authorize`);
+  kobanaAuthUrl.searchParams.set('client_id', config.clientId);
+  kobanaAuthUrl.searchParams.set('redirect_uri', `${config.mcpServerUrl}/oauth/callback`);
+  kobanaAuthUrl.searchParams.set('response_type', 'code');
+  kobanaAuthUrl.searchParams.set('state', kobanaState);
+
+  res.redirect(302, kobanaAuthUrl.toString());
+}
+
+async function handleOAuthCallback(req: VercelRequest, res: VercelResponse): Promise<void> {
+  const kobanaCode = req.query.code as string;
+  const kobanaState = req.query.state as string;
+  const error = req.query.error as string;
+
+  if (error) {
+    res.status(400).send(`<html><body><h1>Authorization Failed</h1><p>${error}</p></body></html>`);
+    return;
+  }
+
+  if (!kobanaState) {
+    res.status(400).json({ error: 'invalid_request', error_description: 'Missing state' });
+    return;
+  }
+
+  const pendingAuth = pendingAuths.get(kobanaState);
+  if (!pendingAuth || Date.now() - pendingAuth.createdAt > PENDING_AUTH_TTL) {
+    pendingAuths.delete(kobanaState);
+    res.status(400).json({ error: 'invalid_request', error_description: 'Invalid or expired state' });
+    return;
+  }
+
+  if (!kobanaCode) {
+    res.status(400).json({ error: 'invalid_request', error_description: 'Missing authorization code' });
+    return;
+  }
+
+  try {
+    const config = getOAuthConfig();
+
+    // Exchange Kobana code for token
+    const tokenUrl = `${config.kobanaAppUrl}/oauth/token`;
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: kobanaCode,
+      redirect_uri: `${config.mcpServerUrl}/oauth/callback`,
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+    });
+
+    const tokenResponse = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body: body.toString(),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error(`Kobana token exchange failed: ${tokenResponse.status}`);
+    }
+
+    const tokenData = await tokenResponse.json() as { access_token: string };
+
+    // Clean up pending auth
+    pendingAuths.delete(kobanaState);
+
+    // Create MCP authorization code
+    const mcpCode = generateCode();
+    authCodes.set(mcpCode, {
+      kobanaToken: tokenData.access_token,
+      codeChallenge: pendingAuth.codeChallenge,
+      codeChallengeMethod: pendingAuth.codeChallengeMethod,
+      redirectUri: pendingAuth.redirectUri,
+      createdAt: Date.now(),
+    });
+
+    // Redirect to client's callback
+    const redirectUrl = new URL(pendingAuth.redirectUri);
+    redirectUrl.searchParams.set('code', mcpCode);
+    redirectUrl.searchParams.set('state', pendingAuth.state);
+
+    res.redirect(302, redirectUrl.toString());
+  } catch (err) {
+    console.error('OAuth callback error:', err);
+    pendingAuths.delete(kobanaState);
+    res.status(500).send('<html><body><h1>Authorization Failed</h1><p>Failed to complete authorization</p></body></html>');
+  }
+}
+
+async function handleOAuthToken(req: VercelRequest, res: VercelResponse): Promise<void> {
+  // Parse body
+  let body: Record<string, string> = {};
+  if (typeof req.body === 'string') {
+    body = Object.fromEntries(new URLSearchParams(req.body));
+  } else if (req.body) {
+    body = req.body;
+  }
+
+  const grantType = body.grant_type;
+  const code = body.code;
+  const codeVerifier = body.code_verifier;
+  const redirectUri = body.redirect_uri;
+
+  if (grantType !== 'authorization_code') {
+    res.status(400).json({ error: 'unsupported_grant_type', error_description: 'Only authorization_code is supported' });
+    return;
+  }
+
+  if (!code) {
+    res.status(400).json({ error: 'invalid_request', error_description: 'code is required' });
+    return;
+  }
+
+  if (!codeVerifier) {
+    res.status(400).json({ error: 'invalid_request', error_description: 'code_verifier is required' });
+    return;
+  }
+
+  const authCode = authCodes.get(code);
+  if (!authCode || Date.now() - authCode.createdAt > AUTH_CODE_TTL) {
+    authCodes.delete(code);
+    res.status(400).json({ error: 'invalid_grant', error_description: 'Invalid or expired authorization code' });
+    return;
+  }
+
+  // Validate redirect_uri
+  if (redirectUri && redirectUri !== authCode.redirectUri) {
+    authCodes.delete(code);
+    res.status(400).json({ error: 'invalid_grant', error_description: 'redirect_uri mismatch' });
+    return;
+  }
+
+  // Validate PKCE
+  if (!validatePKCE(codeVerifier, authCode.codeChallenge, authCode.codeChallengeMethod)) {
+    authCodes.delete(code);
+    res.status(400).json({ error: 'invalid_grant', error_description: 'Invalid code_verifier' });
+    return;
+  }
+
+  // Delete auth code (single use)
+  authCodes.delete(code);
+
+  // Create MCP session
+  const mcpToken = generateToken();
+  activeSessions.set(mcpToken, {
+    kobanaToken: authCode.kobanaToken,
+    createdAt: Date.now(),
+  });
+
+  res.status(200).json({
+    access_token: mcpToken,
+    token_type: 'Bearer',
+    scope: 'login',
+  });
 }
 
 function getToolsForNamespace(namespace: string): ToolDefinition[] {
@@ -149,7 +480,13 @@ async function handleMcp(req: VercelRequest, res: VercelResponse, ns: NamespaceC
       (req.headers['x-kobana-api-url'] as string) || null
     );
   } catch {
-    res.status(401).json({ error: 'Missing or invalid authorization' });
+    // If OAuth is configured, return 401 with WWW-Authenticate to trigger OAuth flow
+    if (isOAuthConfigured()) {
+      res.setHeader('WWW-Authenticate', 'Bearer');
+      res.status(401).json({ error: 'unauthorized', error_description: 'Authentication required' });
+    } else {
+      res.status(401).json({ error: 'Missing or invalid authorization' });
+    }
     return;
   }
 
@@ -199,14 +536,25 @@ function handleInfo(res: VercelResponse): void {
     tools: getToolsForNamespace(ns.name).map(t => t.name),
   }));
 
-  res.status(200).json({
+  const response: Record<string, unknown> = {
     name: 'kobana-mcp-unified',
     version: '1.0.0',
     description: 'Unified Kobana MCP Server for all namespaces',
     transport: 'streamable-http',
     namespaces: namespacesInfo,
     totalTools: namespaces.reduce((sum, ns) => sum + getToolsForNamespace(ns.name).length, 0),
-  });
+  };
+
+  if (isOAuthConfigured()) {
+    response.oauth = {
+      enabled: true,
+      metadata_endpoint: '/.well-known/oauth-authorization-server',
+      authorization_endpoint: '/authorize',
+      token_endpoint: '/token',
+    };
+  }
+
+  res.status(200).json(response);
 }
 
 function handleNamespaceInfo(ns: NamespaceConfig, res: VercelResponse): void {
@@ -236,6 +584,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pathname = req.url?.split('?')[0] || '/';
 
   try {
+    // OAuth endpoints (only if configured)
+    if (isOAuthConfigured()) {
+      if (pathname === '/.well-known/oauth-authorization-server' && req.method === 'GET') {
+        handleOAuthMetadata(res);
+        return;
+      }
+
+      if (pathname === '/authorize' && req.method === 'GET') {
+        handleOAuthAuthorize(req, res);
+        return;
+      }
+
+      if (pathname === '/oauth/callback' && req.method === 'GET') {
+        await handleOAuthCallback(req, res);
+        return;
+      }
+
+      if (pathname === '/token' && req.method === 'POST') {
+        await handleOAuthToken(req, res);
+        return;
+      }
+    }
+
     // Health endpoint
     if (pathname === '/health' && req.method === 'GET') {
       handleHealth(res);
