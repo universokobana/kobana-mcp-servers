@@ -321,6 +321,20 @@ function handleOAuthMetadata(res: VercelResponse): void {
   });
 }
 
+// RFC 9728 - OAuth 2.0 Protected Resource Metadata
+function handleProtectedResourceMetadata(res: VercelResponse): void {
+  const config = getOAuthConfig();
+  const baseUrl = config.mcpServerUrl;
+
+  res.status(200).json({
+    resource: baseUrl,
+    authorization_servers: [baseUrl],
+    scopes_supported: ['login'],
+    bearer_methods_supported: ['header'],
+    resource_documentation: 'https://developers.kobana.com.br',
+  });
+}
+
 async function handleOAuthAuthorize(req: VercelRequest, res: VercelResponse): Promise<void> {
   // Check if Redis is configured for OAuth
   if (!isRedisConfigured()) {
@@ -607,7 +621,10 @@ async function handleMcp(req: VercelRequest, res: VercelResponse, ns: NamespaceC
   } catch {
     // If OAuth is configured, return 401 with WWW-Authenticate to trigger OAuth flow
     if (isOAuthConfigured()) {
-      res.setHeader('WWW-Authenticate', 'Bearer');
+      const oauthConfig = getOAuthConfig();
+      const prmUrl = `${oauthConfig.mcpServerUrl}/.well-known/oauth-protected-resource`;
+      // MCP spec requires resource_metadata in WWW-Authenticate header
+      res.setHeader('WWW-Authenticate', `Bearer resource_metadata="${prmUrl}"`);
       res.status(401).json({ error: 'unauthorized', error_description: 'Authentication required' });
     } else {
       res.status(401).json({ error: 'Missing or invalid authorization' });
@@ -715,6 +732,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (isOAuthConfigured()) {
       if (pathname === '/.well-known/oauth-authorization-server' && req.method === 'GET') {
         handleOAuthMetadata(res);
+        return;
+      }
+
+      // RFC 9728 - Protected Resource Metadata
+      if (pathname === '/.well-known/oauth-protected-resource' && req.method === 'GET') {
+        handleProtectedResourceMetadata(res);
         return;
       }
 
