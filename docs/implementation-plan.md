@@ -241,6 +241,16 @@ All tools should handle:
 - 429: Too Many Requests - Rate limiting
 - 500: Internal Server Error
 
+## Implementation Status
+
+### Completed
+
+| Namespace | npm Package | Status | Tools |
+|-----------|-------------|--------|-------|
+| `charge` | `kobana-mcp-charge` | Complete | 13 |
+
+**Total v2 Endpoints Implemented: 13/13 (100%)**
+
 ## Future Namespaces
 
 As the Kobana API v2 expands, additional MCP servers can be created following the same pattern:
