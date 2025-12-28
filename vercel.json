@@ -20,8 +20,8 @@
   "env": {
     "KOBANA_API_URL": "https://api.kobana.com.br"
   },
-  "buildCommand": "cd vercel-mcp && npm install && npm run build",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
   "outputDirectory": "vercel-mcp/dist",
-  "framework": null,
-  "installCommand": "npm install --prefix mcp-admin && npm install --prefix mcp-charge && npm install --prefix mcp-data && npm install --prefix mcp-edi && npm install --prefix mcp-financial && npm install --prefix mcp-payment && npm install --prefix mcp-transfer && npm install --prefix vercel-mcp"
+  "framework": null
 }
