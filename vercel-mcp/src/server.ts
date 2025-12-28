@@ -8,8 +8,18 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { getConfig, Config } from './config.js';
+import { getConfig, getConfigFromEnv, Config } from './config.js';
 import { namespaces, getNamespaceByPath, NamespaceConfig } from './namespaces.js';
+
+// OAuth imports
+import {
+  isOAuthConfigured,
+  handleMetadata,
+  handleAuthorize,
+  handleKobanaCallback,
+  handleToken,
+  getKobanaTokenFromMcpToken,
+} from './oauth/index.js';
 
 // Import tools from each MCP package
 import { allTools as adminTools } from '../../mcp-admin/dist/tools/index.js';
@@ -253,16 +263,60 @@ function setCorsHeaders(res: ServerResponse): void {
   res.setHeader('Access-Control-Expose-Headers', 'X-Session-Id');
 }
 
+/**
+ * Resolves configuration from request.
+ * Supports:
+ * 1. Direct Kobana token via Authorization header
+ * 2. MCP OAuth token (prefixed with "mcp_") which resolves to Kobana token
+ * 3. Environment variable fallback
+ */
+function resolveConfig(req: IncomingMessage): Config {
+  const authHeader = req.headers.authorization || null;
+  const apiUrlHeader = (req.headers['x-kobana-api-url'] as string) || null;
+
+  // Check for Bearer token
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+
+    // Check if this is an MCP OAuth token
+    if (token.startsWith('mcp_')) {
+      const kobanaToken = getKobanaTokenFromMcpToken(token);
+      if (!kobanaToken) {
+        throw new Error('Invalid or expired MCP token');
+      }
+      return {
+        apiUrl: apiUrlHeader || process.env.KOBANA_API_URL || 'https://api.kobana.com.br',
+        accessToken: kobanaToken,
+      };
+    }
+
+    // Direct Kobana token
+    return {
+      apiUrl: apiUrlHeader || 'https://api.kobana.com.br',
+      accessToken: token,
+    };
+  }
+
+  // Fallback to environment config
+  return getConfigFromEnv();
+}
+
 async function handleSSE(req: IncomingMessage, res: ServerResponse, ns: NamespaceConfig): Promise<void> {
   let config: Config;
   try {
-    config = getConfig(
-      req.headers.authorization || null,
-      (req.headers['x-kobana-api-url'] as string) || null
-    );
+    config = resolveConfig(req);
   } catch {
-    res.writeHead(401, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Missing or invalid authorization' }));
+    // If OAuth is configured, return 401 to trigger OAuth flow
+    if (isOAuthConfigured()) {
+      res.writeHead(401, {
+        'Content-Type': 'application/json',
+        'WWW-Authenticate': 'Bearer',
+      });
+      res.end(JSON.stringify({ error: 'unauthorized', error_description: 'Authentication required' }));
+    } else {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing or invalid authorization' }));
+    }
     return;
   }
 
@@ -335,14 +389,25 @@ function handleInfo(_req: IncomingMessage, res: ServerResponse): void {
     tools: getToolsForNamespace(ns.name).map(t => t.name),
   }));
 
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
+  const response: Record<string, unknown> = {
     name: 'kobana-mcp-unified',
     version: '1.0.0',
     description: 'Unified Kobana MCP Server for all namespaces',
     namespaces: namespacesInfo,
     totalTools: namespaces.reduce((sum, ns) => sum + getToolsForNamespace(ns.name).length, 0),
-  }, null, 2));
+  };
+
+  if (isOAuthConfigured()) {
+    response.oauth = {
+      enabled: true,
+      metadata_endpoint: '/.well-known/oauth-authorization-server',
+      authorization_endpoint: '/authorize',
+      token_endpoint: '/token',
+    };
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(response, null, 2));
 }
 
 function handleNamespaceInfo(ns: NamespaceConfig, _req: IncomingMessage, res: ServerResponse): void {
@@ -375,6 +440,29 @@ const httpServer = createHttpServer(async (req, res) => {
   const pathname = url.pathname;
 
   try {
+    // OAuth endpoints (only if configured)
+    if (isOAuthConfigured()) {
+      if (pathname === '/.well-known/oauth-authorization-server' && req.method === 'GET') {
+        handleMetadata(req, res);
+        return;
+      }
+
+      if (pathname === '/authorize' && req.method === 'GET') {
+        handleAuthorize(req, res);
+        return;
+      }
+
+      if (pathname === '/oauth/callback' && req.method === 'GET') {
+        await handleKobanaCallback(req, res);
+        return;
+      }
+
+      if (pathname === '/token' && req.method === 'POST') {
+        await handleToken(req, res);
+        return;
+      }
+    }
+
     // Root endpoints
     if (pathname === '/health' && req.method === 'GET') {
       handleHealth(req, res);
@@ -429,6 +517,17 @@ httpServer.listen(PORT, HOST, () => {
   console.log('Global endpoints:');
   console.log(`  Health:    GET  http://${HOST}:${PORT}/health`);
   console.log(`  Info:      GET  http://${HOST}:${PORT}/`);
+
+  if (isOAuthConfigured()) {
+    console.log('');
+    console.log('OAuth 2.1 endpoints:');
+    console.log(`  Metadata:  GET  http://${HOST}:${PORT}/.well-known/oauth-authorization-server`);
+    console.log(`  Authorize: GET  http://${HOST}:${PORT}/authorize`);
+    console.log(`  Token:     POST http://${HOST}:${PORT}/token`);
+  } else {
+    console.log('');
+    console.log('OAuth: Not configured (set KOBANA_OAUTH_CLIENT_ID and KOBANA_OAUTH_CLIENT_SECRET to enable)');
+  }
 });
 
 export { httpServer };

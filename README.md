@@ -139,10 +139,21 @@ For sandbox/testing, add `KOBANA_API_URL`:
 
 ## Configuration
 
+### Required for Local/stdio Mode
+
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `KOBANA_ACCESS_TOKEN` | Yes | - | Bearer access token for Kobana API |
 | `KOBANA_API_URL` | No | `https://api.kobana.com.br` | Base URL for Kobana API |
+
+### Additional for OAuth 2.1 (Unified Server)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `KOBANA_OAUTH_CLIENT_ID` | For OAuth | - | OAuth Client ID from Kobana |
+| `KOBANA_OAUTH_CLIENT_SECRET` | For OAuth | - | OAuth Client Secret |
+| `KOBANA_APP_URL` | No | `https://app.kobana.com.br` | Kobana app URL |
+| `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL |
 
 ## Streamable HTTP Mode (Hosted)
 
@@ -445,12 +456,87 @@ vercel --prod
 
 ### Authentication
 
+The unified server supports two authentication methods:
+
+#### 1. Direct Token Authentication
+
 Pass the access token via:
 
-1. **Environment variable**: Set `KOBANA_ACCESS_TOKEN` in Vercel
-2. **Request header**: `Authorization: Bearer <token>`
+- **Environment variable**: Set `KOBANA_ACCESS_TOKEN` in Vercel
+- **Request header**: `Authorization: Bearer <token>`
 
-### Claude Desktop with Remote MCP
+#### 2. OAuth 2.1 Authentication (Recommended for Claude Desktop)
+
+The server implements OAuth 2.1 with PKCE, allowing Claude Desktop to authenticate users automatically via Custom Connectors.
+
+**Step 1: Register OAuth Application in Kobana**
+
+1. Access the Kobana dashboard at https://app.kobana.com.br (or https://app-sandbox.kobana.com.br for sandbox)
+2. Navigate to Settings → OAuth Applications → Create Application
+3. Fill in the application details:
+   - **Name**: `Claude MCP Server` (or your preferred name)
+   - **Redirect URI**: `https://mcp.kobana.com.br/oauth/callback` (your server URL + `/oauth/callback`)
+4. Save and copy the generated `client_id` and `client_secret`
+
+> **Important**: The redirect URI must exactly match your deployed server URL followed by `/oauth/callback`.
+>
+> Examples:
+> - Production: `https://mcp.kobana.com.br/oauth/callback`
+> - Sandbox: `https://mcp-sandbox.kobana.com.br/oauth/callback`
+> - Custom domain: `https://your-domain.com/oauth/callback`
+
+**Step 2: Configure Environment Variables**
+
+Set the following environment variables in Vercel:
+
+```bash
+# Required for OAuth
+vercel env add KOBANA_OAUTH_CLIENT_ID
+vercel env add KOBANA_OAUTH_CLIENT_SECRET
+
+# Optional (with defaults)
+vercel env add MCP_SERVER_URL        # Your server URL (e.g., https://mcp.kobana.com.br)
+vercel env add KOBANA_APP_URL        # Kobana app URL (default: https://app.kobana.com.br)
+```
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `KOBANA_OAUTH_CLIENT_ID` | Yes | - | OAuth Client ID from Kobana |
+| `KOBANA_OAUTH_CLIENT_SECRET` | Yes | - | OAuth Client Secret |
+| `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL (used in OAuth metadata) |
+| `KOBANA_APP_URL` | No | `https://app.kobana.com.br` | Kobana app URL (use `https://app-sandbox.kobana.com.br` for sandbox) |
+
+**Step 3: Deploy**
+
+```bash
+vercel --prod
+```
+
+**Step 4: Connect from Claude Desktop**
+
+1. Open Claude Desktop (Pro, Max, Team, or Enterprise plan required)
+2. Go to **Settings → Connectors → Add Custom Connector**
+3. Enter the MCP server URL for your desired namespace:
+   - Admin: `https://mcp.kobana.com.br/admin/mcp`
+   - Charge: `https://mcp.kobana.com.br/charge/mcp`
+   - Financial: `https://mcp.kobana.com.br/financial/mcp`
+   - Payment: `https://mcp.kobana.com.br/payment/mcp`
+   - Transfer: `https://mcp.kobana.com.br/transfer/mcp`
+4. Click **Connect** - you'll be redirected to Kobana to authorize
+5. After authorization, the connector is ready to use
+
+**OAuth Endpoints Reference:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/.well-known/oauth-authorization-server` | GET | OAuth metadata discovery |
+| `/authorize` | GET | Authorization endpoint |
+| `/token` | POST | Token exchange endpoint |
+| `/oauth/callback` | GET | Kobana OAuth callback |
+
+For detailed OAuth flow documentation, see [docs/oauth.md](./docs/oauth.md).
+
+### Claude Desktop with Remote MCP (Token-based)
 
 ```json
 {
