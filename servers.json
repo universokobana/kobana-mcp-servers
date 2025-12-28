@@ -1,0 +1,214 @@
+{
+  "version": "1.0.0",
+  "servers": [
+    {
+      "name": "kobana-mcp-charge",
+      "namespace": "charge",
+      "description": "MCP Server for Kobana Charge API v2 (Pix payments)",
+      "version": "1.0.0",
+      "path": "./mcp-charge",
+      "entryPoints": {
+        "stdio": "dist/index.js",
+        "http": "dist/http-server.js"
+      },
+      "configuration": {
+        "required": [
+          {
+            "name": "KOBANA_ACCESS_TOKEN",
+            "description": "Bearer access token for Kobana API"
+          }
+        ],
+        "optional": [
+          {
+            "name": "KOBANA_API_URL",
+            "description": "Base URL for Kobana API",
+            "default": "https://api.kobana.com.br"
+          },
+          {
+            "name": "PORT",
+            "description": "HTTP server port (http mode only)",
+            "default": "3000"
+          },
+          {
+            "name": "HOST",
+            "description": "HTTP server host (http mode only)",
+            "default": "0.0.0.0"
+          }
+        ]
+      },
+      "resources": [
+        {
+          "name": "charge_pix_accounts",
+          "description": "Pix accounts for receiving payments",
+          "apiPath": "/v2/charge/pix_accounts"
+        },
+        {
+          "name": "charge_pix",
+          "description": "Pix charges/invoices",
+          "apiPath": "/v2/charge/pix"
+        },
+        {
+          "name": "charge_pix_commands",
+          "description": "Command/operation history for Pix charges",
+          "apiPath": "/v2/charge/pix/{pix_uid}/commands"
+        }
+      ],
+      "tools": [
+        {
+          "name": "list_charge_pix_accounts",
+          "resource": "charge_pix_accounts",
+          "method": "GET",
+          "description": "List all Pix accounts registered for receiving payments",
+          "parameters": {
+            "page": "Page number (optional)",
+            "per_page": "Items per page, max 50 (optional)"
+          }
+        },
+        {
+          "name": "create_charge_pix_account",
+          "resource": "charge_pix_accounts",
+          "method": "POST",
+          "description": "Create a new Pix account for receiving payments",
+          "parameters": {
+            "financial_provider_slug": "Financial provider identifier (required)",
+            "key": "Pix key (required)",
+            "beneficiary": "Beneficiary information (required)",
+            "custom_name": "Custom name (optional)"
+          }
+        },
+        {
+          "name": "get_charge_pix_account",
+          "resource": "charge_pix_accounts",
+          "method": "GET",
+          "description": "Get details of a specific Pix account",
+          "parameters": {
+            "uid": "Pix account UID (required)"
+          }
+        },
+        {
+          "name": "update_charge_pix_account",
+          "resource": "charge_pix_accounts",
+          "method": "PUT",
+          "description": "Update an existing Pix account",
+          "parameters": {
+            "uid": "Pix account UID (required)",
+            "custom_name": "New custom name (optional)"
+          }
+        },
+        {
+          "name": "delete_charge_pix_account",
+          "resource": "charge_pix_accounts",
+          "method": "DELETE",
+          "description": "Delete a Pix account",
+          "parameters": {
+            "uid": "Pix account UID (required)"
+          }
+        },
+        {
+          "name": "list_charge_pix",
+          "resource": "charge_pix",
+          "method": "GET",
+          "description": "List all Pix charges with optional filters",
+          "parameters": {
+            "page": "Page number (optional)",
+            "per_page": "Items per page, max 50 (optional)",
+            "status": "Filter by status (optional)",
+            "txid": "Filter by transaction ID (optional)",
+            "pix_account_id": "Filter by Pix account (optional)",
+            "cnpj_cpf": "Filter by payer document (optional)",
+            "tags": "Filter by tags (optional)",
+            "expire_from": "Minimum expiration date (optional)",
+            "expire_to": "Maximum expiration date (optional)",
+            "paid_from": "Minimum payment date (optional)",
+            "paid_to": "Maximum payment date (optional)",
+            "created_from": "Minimum creation date (optional)",
+            "created_to": "Maximum creation date (optional)"
+          }
+        },
+        {
+          "name": "create_charge_pix",
+          "resource": "charge_pix",
+          "method": "POST",
+          "description": "Create a new Pix charge for payment collection",
+          "parameters": {
+            "amount": "Amount in cents (required)",
+            "pix_account_id": "Pix account UID (required)",
+            "payer": "Payer information with name and document (required)",
+            "expire_at": "Expiration date ISO 8601 (required)",
+            "message": "Message to payer (optional)",
+            "tags": "Tags for categorization (optional)",
+            "interest": "Interest configuration (optional)",
+            "discounts": "Discount configurations (optional)",
+            "fine": "Fine configuration (optional)",
+            "reduction": "Reduction configuration (optional)"
+          }
+        },
+        {
+          "name": "get_charge_pix",
+          "resource": "charge_pix",
+          "method": "GET",
+          "description": "Get details of a specific Pix charge",
+          "parameters": {
+            "uid": "Pix charge UID (required)"
+          }
+        },
+        {
+          "name": "delete_charge_pix",
+          "resource": "charge_pix",
+          "method": "DELETE",
+          "description": "Permanently delete a canceled Pix charge",
+          "parameters": {
+            "uid": "Pix charge UID (required)"
+          }
+        },
+        {
+          "name": "update_charge_pix",
+          "resource": "charge_pix",
+          "method": "PUT",
+          "description": "Update an existing Pix charge (async operation)",
+          "parameters": {
+            "pix_uid": "Pix charge UID (required)",
+            "amount": "New amount in cents (optional)",
+            "expire_at": "New expiration date (optional)",
+            "message": "New message (optional)",
+            "payer": "Updated payer info (optional)",
+            "interest": "New interest config (optional)",
+            "discounts": "New discount configs (optional)",
+            "fine": "New fine config (optional)",
+            "reduction": "New reduction config (optional)"
+          }
+        },
+        {
+          "name": "cancel_charge_pix",
+          "resource": "charge_pix",
+          "method": "PUT",
+          "description": "Cancel a Pix charge (async operation)",
+          "parameters": {
+            "pix_uid": "Pix charge UID (required)"
+          }
+        },
+        {
+          "name": "list_charge_pix_commands",
+          "resource": "charge_pix_commands",
+          "method": "GET",
+          "description": "List all commands executed on a Pix charge",
+          "parameters": {
+            "pix_uid": "Pix charge UID (required)",
+            "page": "Page number (optional)",
+            "per_page": "Items per page (optional)"
+          }
+        },
+        {
+          "name": "get_charge_pix_command",
+          "resource": "charge_pix_commands",
+          "method": "GET",
+          "description": "Get details of a specific command",
+          "parameters": {
+            "pix_uid": "Pix charge UID (required)",
+            "id": "Command ID (required)"
+          }
+        }
+      ]
+    }
+  ]
+}
