@@ -1,5 +1,11 @@
 # Kobana MCP Servers
 
+[![npm version](https://img.shields.io/npm/v/kobana-mcp-admin.svg)](https://www.npmjs.com/package/kobana-mcp-admin)
+[![npm version](https://img.shields.io/npm/v/kobana-mcp-charge.svg)](https://www.npmjs.com/package/kobana-mcp-charge)
+[![npm version](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial)
+[![npm version](https://img.shields.io/npm/v/kobana-mcp-payment.svg)](https://www.npmjs.com/package/kobana-mcp-payment)
+[![npm version](https://img.shields.io/npm/v/kobana-mcp-transfer.svg)](https://www.npmjs.com/package/kobana-mcp-transfer)
+
 MCP (Model Context Protocol) servers for the Kobana API v2. These servers enable AI assistants to interact with the Kobana financial automation platform.
 
 ## About Kobana
@@ -10,13 +16,13 @@ Kobana is a financial automation platform. Learn more at: https://www.kobana.com
 
 | Server | npm Package | Tools | Description |
 |--------|-------------|-------|-------------|
-| [mcp-admin](./mcp-admin) | `kobana-mcp-admin` | 17 | Certificates, connections, subaccounts, users |
-| [mcp-charge](./mcp-charge) | `kobana-mcp-charge` | 35 | Pix charges, accounts, automatic pix, payments |
-| [mcp-data](./mcp-data) | `kobana-mcp-data` | 2 | Bank billet queries |
-| [mcp-edi](./mcp-edi) | `kobana-mcp-edi` | 4 | EDI boxes management |
-| [mcp-financial](./mcp-financial) | `kobana-mcp-financial` | 15 | Financial accounts, balances, statements |
-| [mcp-payment](./mcp-payment) | `kobana-mcp-payment` | 24 | Bank billets, Pix, DARF, taxes, utilities |
-| [mcp-transfer](./mcp-transfer) | `kobana-mcp-transfer` | 16 | Pix, TED, internal transfers |
+| [mcp-admin](./mcp-admin) | [![npm](https://img.shields.io/npm/v/kobana-mcp-admin.svg)](https://www.npmjs.com/package/kobana-mcp-admin) | 17 | Certificates, connections, subaccounts, users |
+| [mcp-charge](./mcp-charge) | [![npm](https://img.shields.io/npm/v/kobana-mcp-charge.svg)](https://www.npmjs.com/package/kobana-mcp-charge) | 35 | Pix charges, accounts, automatic pix, payments |
+| [mcp-data](./mcp-data) | [![npm](https://img.shields.io/npm/v/kobana-mcp-data.svg)](https://www.npmjs.com/package/kobana-mcp-data) | 2 | Bank billet queries |
+| [mcp-edi](./mcp-edi) | [![npm](https://img.shields.io/npm/v/kobana-mcp-edi.svg)](https://www.npmjs.com/package/kobana-mcp-edi) | 4 | EDI boxes management |
+| [mcp-financial](./mcp-financial) | [![npm](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial) | 15 | Financial accounts, balances, statements |
+| [mcp-payment](./mcp-payment) | [![npm](https://img.shields.io/npm/v/kobana-mcp-payment.svg)](https://www.npmjs.com/package/kobana-mcp-payment) | 24 | Bank billets, Pix, DARF, taxes, utilities |
+| [mcp-transfer](./mcp-transfer) | [![npm](https://img.shields.io/npm/v/kobana-mcp-transfer.svg)](https://www.npmjs.com/package/kobana-mcp-transfer) | 16 | Pix, TED, internal transfers |
 
 **Total: 113 tools across 7 MCP servers**
 
@@ -558,3 +564,13 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [API Documentation](https://developers.kobana.com.br)
 - [API V2 Specification](https://github.com/universokobana/kobana-api-specs)
 - [GitHub Repository](https://github.com/universokobana/kobana-mcp-servers)
+
+### npm Packages
+
+- [kobana-mcp-admin](https://www.npmjs.com/package/kobana-mcp-admin)
+- [kobana-mcp-charge](https://www.npmjs.com/package/kobana-mcp-charge)
+- [kobana-mcp-data](https://www.npmjs.com/package/kobana-mcp-data)
+- [kobana-mcp-edi](https://www.npmjs.com/package/kobana-mcp-edi)
+- [kobana-mcp-financial](https://www.npmjs.com/package/kobana-mcp-financial)
+- [kobana-mcp-payment](https://www.npmjs.com/package/kobana-mcp-payment)
+- [kobana-mcp-transfer](https://www.npmjs.com/package/kobana-mcp-transfer)
