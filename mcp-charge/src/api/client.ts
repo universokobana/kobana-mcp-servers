@@ -77,6 +77,10 @@ export class KobanaApiClient {
   async delete<T>(path: string): Promise<T> {
     return this.request<T>('DELETE', path);
   }
+
+  async patch<T>(path: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
+    return this.request<T>('PATCH', path, body, headers);
+  }
 }
 
 export class KobanaApiError extends Error {
