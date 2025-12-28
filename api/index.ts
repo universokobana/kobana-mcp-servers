@@ -311,6 +311,7 @@ function handleOAuthMetadata(res: VercelResponse): void {
     issuer: baseUrl,
     authorization_endpoint: `${baseUrl}/authorize`,
     token_endpoint: `${baseUrl}/token`,
+    registration_endpoint: `${baseUrl}/register`,
     scopes_supported: ['login'],
     response_types_supported: ['code'],
     response_modes_supported: ['query'],
@@ -332,6 +333,47 @@ function handleProtectedResourceMetadata(res: VercelResponse): void {
     scopes_supported: ['login'],
     bearer_methods_supported: ['header'],
     resource_documentation: 'https://developers.kobana.com.br',
+  });
+}
+
+// RFC 7591 - Dynamic Client Registration
+async function handleDynamicClientRegistration(req: VercelRequest, res: VercelResponse): Promise<void> {
+  // Parse request body
+  let body: Record<string, unknown> = {};
+  if (typeof req.body === 'string') {
+    try {
+      body = JSON.parse(req.body);
+    } catch {
+      res.status(400).json({ error: 'invalid_client_metadata', error_description: 'Invalid JSON body' });
+      return;
+    }
+  } else if (req.body) {
+    body = req.body;
+  }
+
+  const clientName = (body.client_name as string) || 'MCP Client';
+  const redirectUris = (body.redirect_uris as string[]) || [];
+
+  // Validate redirect_uris
+  if (!redirectUris || redirectUris.length === 0) {
+    res.status(400).json({ error: 'invalid_redirect_uri', error_description: 'redirect_uris is required' });
+    return;
+  }
+
+  // Generate a unique client_id for this registration
+  // In a real implementation, you'd store this in a database
+  // For MCP, we accept any client and use the Kobana OAuth credentials server-side
+  const clientId = `mcp_client_${randomUUID().replace(/-/g, '')}`;
+
+  // Return client credentials
+  // Note: client_secret is not required for public clients using PKCE
+  res.status(201).json({
+    client_id: clientId,
+    client_name: clientName,
+    redirect_uris: redirectUris,
+    grant_types: ['authorization_code'],
+    response_types: ['code'],
+    token_endpoint_auth_method: 'none',
   });
 }
 
@@ -753,6 +795,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (pathname === '/token' && req.method === 'POST') {
         await handleOAuthToken(req, res);
+        return;
+      }
+
+      // RFC 7591 - Dynamic Client Registration
+      if (pathname === '/register' && req.method === 'POST') {
+        await handleDynamicClientRegistration(req, res);
         return;
       }
     }
