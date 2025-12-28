@@ -152,8 +152,12 @@ For sandbox/testing, add `KOBANA_API_URL`:
 |----------|----------|---------|-------------|
 | `KOBANA_OAUTH_CLIENT_ID` | For OAuth | - | OAuth Client ID from Kobana |
 | `KOBANA_OAUTH_CLIENT_SECRET` | For OAuth | - | OAuth Client Secret |
+| `REDIS_URL` | For OAuth | - | Redis connection URL for session storage |
+| `APP_ENVIRONMENT` | No | `production` | Environment name (`sandbox` or `production`) |
 | `KOBANA_APP_URL` | No | `https://app.kobana.com.br` | Kobana app URL |
 | `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL |
+
+> **Note**: Redis is required for OAuth. Keys are prefixed with environment (e.g., `mcp:sandbox:*`), allowing shared Redis between environments.
 
 ## Streamable HTTP Mode (Hosted)
 
@@ -493,8 +497,10 @@ Set the following environment variables in Vercel:
 # Required for OAuth
 vercel env add KOBANA_OAUTH_CLIENT_ID
 vercel env add KOBANA_OAUTH_CLIENT_SECRET
+vercel env add REDIS_URL              # Redis connection URL (e.g., redis://user:pass@host:port)
 
 # Optional (with defaults)
+vercel env add APP_ENVIRONMENT       # "production" (default) or "sandbox"
 vercel env add MCP_SERVER_URL        # Your server URL (e.g., https://mcp.kobana.com.br)
 vercel env add KOBANA_APP_URL        # Kobana app URL (default: https://app.kobana.com.br)
 ```
@@ -503,8 +509,12 @@ vercel env add KOBANA_APP_URL        # Kobana app URL (default: https://app.koba
 |----------|----------|---------|-------------|
 | `KOBANA_OAUTH_CLIENT_ID` | Yes | - | OAuth Client ID from Kobana |
 | `KOBANA_OAUTH_CLIENT_SECRET` | Yes | - | OAuth Client Secret |
+| `REDIS_URL` | Yes | - | Redis connection URL for session storage |
+| `APP_ENVIRONMENT` | No | `production` | Environment name (`sandbox` or `production`) |
 | `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL (used in OAuth metadata) |
 | `KOBANA_APP_URL` | No | `https://app.kobana.com.br` | Kobana app URL (use `https://app-sandbox.kobana.com.br` for sandbox) |
+
+> **Note**: Redis is required for OAuth session storage. Keys are prefixed with the environment name (e.g., `mcp:sandbox:session:*`), allowing you to share the same Redis instance between production and sandbox.
 
 **Step 3: Deploy**
 

@@ -22,12 +22,15 @@ The MCP server implements OAuth 2.1 with PKCE, delegating authentication to Koba
 | `KOBANA_OAUTH_CLIENT_ID` | Yes | - | OAuth Client ID from Kobana |
 | `KOBANA_OAUTH_CLIENT_SECRET` | Yes | - | OAuth Client Secret |
 | `REDIS_URL` | Yes | - | Redis connection URL for session storage |
+| `APP_ENVIRONMENT` | No | `production` | Environment name (`sandbox` or `production`) |
 | `KOBANA_APP_URL` | No | `https://app.kobana.com.br` | Kobana app URL |
 | `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL |
 
-For sandbox environment, use `KOBANA_APP_URL=https://app-sandbox.kobana.com.br`.
+For sandbox environment, use:
+- `APP_ENVIRONMENT=sandbox`
+- `KOBANA_APP_URL=https://app-sandbox.kobana.com.br`
 
-> **Note**: Redis is required for OAuth session storage in serverless environments like Vercel. You can use any Redis provider (e.g., Upstash, Redis Cloud, self-hosted).
+> **Note**: Redis is required for OAuth session storage in serverless environments like Vercel. You can use any Redis provider (e.g., Upstash, Redis Cloud, self-hosted). Redis keys are prefixed with the environment name (e.g., `mcp:sandbox:session:*`), allowing you to share the same Redis instance between environments.
 
 ## Authorization Flow
 
@@ -117,7 +120,7 @@ The redirect URI must exactly match your deployed server URL followed by `/oauth
 
 ### Step 3: Set Environment Variables
 
-**Vercel Deployment:**
+**Vercel Deployment (Production):**
 
 ```bash
 # Required for OAuth
@@ -126,8 +129,23 @@ vercel env add KOBANA_OAUTH_CLIENT_SECRET
 vercel env add REDIS_URL              # Redis connection URL (e.g., redis://user:pass@host:port)
 
 # Optional (with defaults)
+vercel env add APP_ENVIRONMENT       # "production" (default) or "sandbox"
 vercel env add MCP_SERVER_URL        # Your server URL
 vercel env add KOBANA_APP_URL        # Kobana app URL
+```
+
+**Vercel Deployment (Sandbox):**
+
+```bash
+# Required for OAuth
+vercel env add KOBANA_OAUTH_CLIENT_ID
+vercel env add KOBANA_OAUTH_CLIENT_SECRET
+vercel env add REDIS_URL
+
+# Sandbox-specific
+vercel env add APP_ENVIRONMENT       # Set to "sandbox"
+vercel env add KOBANA_APP_URL        # Set to "https://app-sandbox.kobana.com.br"
+vercel env add MCP_SERVER_URL        # Set to "https://mcp-sandbox.kobana.com.br"
 ```
 
 **Local Development:**
@@ -136,8 +154,9 @@ vercel env add KOBANA_APP_URL        # Kobana app URL
 export KOBANA_OAUTH_CLIENT_ID=your_client_id
 export KOBANA_OAUTH_CLIENT_SECRET=your_client_secret
 export REDIS_URL=redis://localhost:6379
+export APP_ENVIRONMENT=sandbox
 export MCP_SERVER_URL=http://localhost:3000
-export KOBANA_APP_URL=https://app-sandbox.kobana.com.br  # Use sandbox for testing
+export KOBANA_APP_URL=https://app-sandbox.kobana.com.br
 ```
 
 ### Step 4: Deploy
