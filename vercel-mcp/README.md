@@ -98,17 +98,46 @@ For a Vercel deployment at `mcp.kobana.com.br`:
   "mcpServers": {
     "kobana-charge": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.kobana.com.br/charge/mcp"],
-      "env": {
-        "HEADER_Authorization": "Bearer your_access_token"
-      }
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.kobana.com.br/charge/mcp",
+        "--header",
+        "Authorization: Bearer your_access_token"
+      ]
     },
     "kobana-transfer": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.kobana.com.br/transfer/mcp"],
-      "env": {
-        "HEADER_Authorization": "Bearer your_access_token"
-      }
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.kobana.com.br/transfer/mcp",
+        "--header",
+        "Authorization: Bearer your_access_token"
+      ]
+    }
+  }
+}
+```
+
+#### Using Sandbox Environment
+
+To use the sandbox API, add the `X-Kobana-Api-Url` header:
+
+```json
+{
+  "mcpServers": {
+    "kobana-charge": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.kobana.com.br/charge/mcp",
+        "--header",
+        "Authorization: Bearer your_sandbox_token",
+        "--header",
+        "X-Kobana-Api-Url: https://api-sandbox.kobana.com.br"
+      ]
     }
   }
 }

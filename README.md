@@ -451,10 +451,36 @@ Pass the access token via:
   "mcpServers": {
     "kobana-charge": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.kobana.com.br/charge/mcp"],
-      "env": {
-        "HEADER_Authorization": "Bearer your_access_token"
-      }
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.kobana.com.br/charge/mcp",
+        "--header",
+        "Authorization: Bearer your_access_token"
+      ]
+    }
+  }
+}
+```
+
+#### Using Sandbox Environment
+
+To use the sandbox API, add the `X-Kobana-Api-Url` header:
+
+```json
+{
+  "mcpServers": {
+    "kobana-charge": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.kobana.com.br/charge/mcp",
+        "--header",
+        "Authorization: Bearer your_sandbox_token",
+        "--header",
+        "X-Kobana-Api-Url: https://api-sandbox.kobana.com.br"
+      ]
     }
   }
 }
