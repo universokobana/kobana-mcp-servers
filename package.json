@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Kobana MCP Servers Monorepo",
   "private": true,
+  "type": "module",
   "workspaces": [
     "mcp-admin",
     "mcp-charge",
@@ -14,8 +15,16 @@
     "vercel-mcp"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "build:vercel": "npm run build --workspace=vercel-mcp"
+    "build": "npm run build --workspaces"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.0",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
   },
   "author": "Kobana",
   "license": "MIT"
