@@ -3,6 +3,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { createHash, randomUUID } from 'crypto';
+import { Redis } from 'ioredis';
 
 // Import tools from each MCP package
 import { allTools as adminTools } from '../mcp-admin/dist/tools/index.js';
@@ -88,14 +89,117 @@ interface ActiveSession {
   createdAt: number;
 }
 
-// TTL constants
-const PENDING_AUTH_TTL = 10 * 60 * 1000; // 10 minutes
-const AUTH_CODE_TTL = 5 * 60 * 1000; // 5 minutes
+// TTL constants (in seconds for Redis)
+const PENDING_AUTH_TTL = 10 * 60; // 10 minutes
+const AUTH_CODE_TTL = 5 * 60; // 5 minutes
+const SESSION_TTL = 24 * 60 * 60; // 24 hours
 
-// In-memory storage (Note: will reset on cold starts, consider using Vercel KV for production)
-const pendingAuths = new Map<string, PendingAuth>();
-const authCodes = new Map<string, AuthCode>();
-const activeSessions = new Map<string, ActiveSession>();
+// Redis client singleton
+let redisClient: Redis | null = null;
+
+function getRedisClient(): Redis | null {
+  if (!process.env.REDIS_URL) return null;
+
+  if (!redisClient) {
+    redisClient = new Redis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+    });
+  }
+  return redisClient;
+}
+
+function isRedisConfigured(): boolean {
+  return !!process.env.REDIS_URL;
+}
+
+// Redis key prefixes
+const REDIS_PREFIX = {
+  pendingAuth: 'mcp:pending:',
+  authCode: 'mcp:code:',
+  session: 'mcp:session:',
+};
+
+// Storage functions with Redis support
+async function storePendingAuth(kobanaState: string, auth: PendingAuth): Promise<void> {
+  const redis = getRedisClient();
+  if (redis) {
+    await redis.setex(
+      REDIS_PREFIX.pendingAuth + kobanaState,
+      PENDING_AUTH_TTL,
+      JSON.stringify(auth)
+    );
+  }
+}
+
+async function getPendingAuth(kobanaState: string): Promise<PendingAuth | null> {
+  const redis = getRedisClient();
+  if (redis) {
+    const data = await redis.get(REDIS_PREFIX.pendingAuth + kobanaState);
+    if (data) {
+      return JSON.parse(data) as PendingAuth;
+    }
+  }
+  return null;
+}
+
+async function deletePendingAuth(kobanaState: string): Promise<void> {
+  const redis = getRedisClient();
+  if (redis) {
+    await redis.del(REDIS_PREFIX.pendingAuth + kobanaState);
+  }
+}
+
+async function storeAuthCode(code: string, authCode: AuthCode): Promise<void> {
+  const redis = getRedisClient();
+  if (redis) {
+    await redis.setex(
+      REDIS_PREFIX.authCode + code,
+      AUTH_CODE_TTL,
+      JSON.stringify(authCode)
+    );
+  }
+}
+
+async function getAuthCode(code: string): Promise<AuthCode | null> {
+  const redis = getRedisClient();
+  if (redis) {
+    const data = await redis.get(REDIS_PREFIX.authCode + code);
+    if (data) {
+      return JSON.parse(data) as AuthCode;
+    }
+  }
+  return null;
+}
+
+async function deleteAuthCode(code: string): Promise<void> {
+  const redis = getRedisClient();
+  if (redis) {
+    await redis.del(REDIS_PREFIX.authCode + code);
+  }
+}
+
+async function storeSession(mcpToken: string, session: ActiveSession): Promise<void> {
+  const redis = getRedisClient();
+  if (redis) {
+    await redis.setex(
+      REDIS_PREFIX.session + mcpToken,
+      SESSION_TTL,
+      JSON.stringify(session)
+    );
+  }
+}
+
+async function getSession(mcpToken: string): Promise<ActiveSession | null> {
+  const redis = getRedisClient();
+  if (redis) {
+    const data = await redis.get(REDIS_PREFIX.session + mcpToken);
+    if (data) {
+      return JSON.parse(data) as ActiveSession;
+    }
+  }
+  return null;
+}
 
 function isOAuthConfigured(): boolean {
   return !!(process.env.KOBANA_OAUTH_CLIENT_ID && process.env.KOBANA_OAUTH_CLIENT_SECRET);
@@ -140,15 +244,15 @@ function validatePKCE(codeVerifier: string, codeChallenge: string, method: strin
   return expectedChallenge === codeChallenge;
 }
 
-function getKobanaTokenFromMcpToken(mcpToken: string): string | undefined {
-  const session = activeSessions.get(mcpToken);
+async function getKobanaTokenFromMcpToken(mcpToken: string): Promise<string | undefined> {
+  const session = await getSession(mcpToken);
   if (session) {
     return session.kobanaToken;
   }
   return undefined;
 }
 
-function getConfig(authHeader: string | null, apiUrlHeader: string | null): Config {
+async function getConfig(authHeader: string | null, apiUrlHeader: string | null): Promise<Config> {
   let accessToken = process.env.KOBANA_ACCESS_TOKEN || '';
 
   if (authHeader) {
@@ -158,7 +262,7 @@ function getConfig(authHeader: string | null, apiUrlHeader: string | null): Conf
 
       // Check if this is an MCP OAuth token
       if (token.startsWith('mcp_')) {
-        const kobanaToken = getKobanaTokenFromMcpToken(token);
+        const kobanaToken = await getKobanaTokenFromMcpToken(token);
         if (kobanaToken) {
           accessToken = kobanaToken;
         } else {
@@ -202,7 +306,13 @@ function handleOAuthMetadata(res: VercelResponse): void {
   });
 }
 
-function handleOAuthAuthorize(req: VercelRequest, res: VercelResponse): void {
+async function handleOAuthAuthorize(req: VercelRequest, res: VercelResponse): Promise<void> {
+  // Check if Redis is configured for OAuth
+  if (!isRedisConfigured()) {
+    res.status(503).json({ error: 'service_unavailable', error_description: 'OAuth requires Redis configuration (REDIS_URL)' });
+    return;
+  }
+
   const config = getOAuthConfig();
 
   const responseType = req.query.response_type as string;
@@ -233,10 +343,10 @@ function handleOAuthAuthorize(req: VercelRequest, res: VercelResponse): void {
     return;
   }
 
-  // Generate kobana state and store pending auth
+  // Generate kobana state and store pending auth in Redis
   const kobanaState = generateState();
 
-  pendingAuths.set(kobanaState, {
+  await storePendingAuth(kobanaState, {
     codeChallenge,
     codeChallengeMethod,
     redirectUri,
@@ -271,9 +381,9 @@ async function handleOAuthCallback(req: VercelRequest, res: VercelResponse): Pro
     return;
   }
 
-  const pendingAuth = pendingAuths.get(kobanaState);
-  if (!pendingAuth || Date.now() - pendingAuth.createdAt > PENDING_AUTH_TTL) {
-    pendingAuths.delete(kobanaState);
+  // Get pending auth from Redis (TTL is handled by Redis)
+  const pendingAuth = await getPendingAuth(kobanaState);
+  if (!pendingAuth) {
     res.status(400).json({ error: 'invalid_request', error_description: 'Invalid or expired state' });
     return;
   }
@@ -311,12 +421,12 @@ async function handleOAuthCallback(req: VercelRequest, res: VercelResponse): Pro
 
     const tokenData = await tokenResponse.json() as { access_token: string };
 
-    // Clean up pending auth
-    pendingAuths.delete(kobanaState);
+    // Clean up pending auth from Redis
+    await deletePendingAuth(kobanaState);
 
-    // Create MCP authorization code
+    // Create MCP authorization code and store in Redis
     const mcpCode = generateCode();
-    authCodes.set(mcpCode, {
+    await storeAuthCode(mcpCode, {
       kobanaToken: tokenData.access_token,
       codeChallenge: pendingAuth.codeChallenge,
       codeChallengeMethod: pendingAuth.codeChallengeMethod,
@@ -332,7 +442,7 @@ async function handleOAuthCallback(req: VercelRequest, res: VercelResponse): Pro
     res.redirect(302, redirectUrl.toString());
   } catch (err) {
     console.error('OAuth callback error:', err);
-    pendingAuths.delete(kobanaState);
+    await deletePendingAuth(kobanaState);
     res.status(500).send('<html><body><h1>Authorization Failed</h1><p>Failed to complete authorization</p></body></html>');
   }
 }
@@ -366,33 +476,33 @@ async function handleOAuthToken(req: VercelRequest, res: VercelResponse): Promis
     return;
   }
 
-  const authCode = authCodes.get(code);
-  if (!authCode || Date.now() - authCode.createdAt > AUTH_CODE_TTL) {
-    authCodes.delete(code);
+  // Get auth code from Redis (TTL is handled by Redis)
+  const authCode = await getAuthCode(code);
+  if (!authCode) {
     res.status(400).json({ error: 'invalid_grant', error_description: 'Invalid or expired authorization code' });
     return;
   }
 
   // Validate redirect_uri
   if (redirectUri && redirectUri !== authCode.redirectUri) {
-    authCodes.delete(code);
+    await deleteAuthCode(code);
     res.status(400).json({ error: 'invalid_grant', error_description: 'redirect_uri mismatch' });
     return;
   }
 
   // Validate PKCE
   if (!validatePKCE(codeVerifier, authCode.codeChallenge, authCode.codeChallengeMethod)) {
-    authCodes.delete(code);
+    await deleteAuthCode(code);
     res.status(400).json({ error: 'invalid_grant', error_description: 'Invalid code_verifier' });
     return;
   }
 
   // Delete auth code (single use)
-  authCodes.delete(code);
+  await deleteAuthCode(code);
 
-  // Create MCP session
+  // Create MCP session in Redis
   const mcpToken = generateToken();
-  activeSessions.set(mcpToken, {
+  await storeSession(mcpToken, {
     kobanaToken: authCode.kobanaToken,
     createdAt: Date.now(),
   });
@@ -475,7 +585,7 @@ function setCorsHeaders(res: VercelResponse): void {
 async function handleMcp(req: VercelRequest, res: VercelResponse, ns: NamespaceConfig): Promise<void> {
   let config: Config;
   try {
-    config = getConfig(
+    config = await getConfig(
       req.headers.authorization || null,
       (req.headers['x-kobana-api-url'] as string) || null
     );
@@ -548,6 +658,7 @@ function handleInfo(res: VercelResponse): void {
   if (isOAuthConfigured()) {
     response.oauth = {
       enabled: true,
+      redis_configured: isRedisConfigured(),
       metadata_endpoint: '/.well-known/oauth-authorization-server',
       authorization_endpoint: '/authorize',
       token_endpoint: '/token',
@@ -592,7 +703,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (pathname === '/authorize' && req.method === 'GET') {
-        handleOAuthAuthorize(req, res);
+        await handleOAuthAuthorize(req, res);
         return;
       }
 

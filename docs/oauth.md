@@ -21,10 +21,13 @@ The MCP server implements OAuth 2.1 with PKCE, delegating authentication to Koba
 |----------|----------|---------|-------------|
 | `KOBANA_OAUTH_CLIENT_ID` | Yes | - | OAuth Client ID from Kobana |
 | `KOBANA_OAUTH_CLIENT_SECRET` | Yes | - | OAuth Client Secret |
+| `REDIS_URL` | Yes | - | Redis connection URL for session storage |
 | `KOBANA_APP_URL` | No | `https://app.kobana.com.br` | Kobana app URL |
 | `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL |
 
 For sandbox environment, use `KOBANA_APP_URL=https://app-sandbox.kobana.com.br`.
+
+> **Note**: Redis is required for OAuth session storage in serverless environments like Vercel. You can use any Redis provider (e.g., Upstash, Redis Cloud, self-hosted).
 
 ## Authorization Flow
 
@@ -120,6 +123,7 @@ The redirect URI must exactly match your deployed server URL followed by `/oauth
 # Required for OAuth
 vercel env add KOBANA_OAUTH_CLIENT_ID
 vercel env add KOBANA_OAUTH_CLIENT_SECRET
+vercel env add REDIS_URL              # Redis connection URL (e.g., redis://user:pass@host:port)
 
 # Optional (with defaults)
 vercel env add MCP_SERVER_URL        # Your server URL
@@ -131,6 +135,7 @@ vercel env add KOBANA_APP_URL        # Kobana app URL
 ```bash
 export KOBANA_OAUTH_CLIENT_ID=your_client_id
 export KOBANA_OAUTH_CLIENT_SECRET=your_client_secret
+export REDIS_URL=redis://localhost:6379
 export MCP_SERVER_URL=http://localhost:3000
 export KOBANA_APP_URL=https://app-sandbox.kobana.com.br  # Use sandbox for testing
 ```
@@ -247,6 +252,7 @@ vercel-mcp/src/oauth/
 
 ## Notes
 
-1. **Token Expiration**: Kobana tokens do not expire. MCP tokens are stored in-memory and persist until server restart.
-2. **Scaling**: For production with multiple instances, consider using Redis for session storage.
-3. **Testing**: Use [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to validate the OAuth flow before deployment.
+1. **Token Expiration**: Kobana tokens do not expire. MCP tokens are stored in Redis with a 24-hour TTL.
+2. **Redis Required**: OAuth requires Redis for session storage. This is essential for serverless environments like Vercel where in-memory storage doesn't persist across function invocations.
+3. **Session TTLs**: Pending authorizations expire after 10 minutes, authorization codes after 5 minutes, and sessions after 24 hours.
+4. **Testing**: Use [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to validate the OAuth flow before deployment.
