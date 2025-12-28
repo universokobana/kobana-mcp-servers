@@ -465,7 +465,26 @@ Pass the access token via:
 
 #### Using Sandbox Environment
 
-To use the sandbox API, add the `X-Kobana-Api-Url` header:
+**Option 1: Use the sandbox host directly (recommended)**
+
+```json
+{
+  "mcpServers": {
+    "kobana-charge": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp-sandbox.kobana.com.br/charge/mcp",
+        "--header",
+        "Authorization: Bearer your_sandbox_token"
+      ]
+    }
+  }
+}
+```
+
+**Option 2: Use the header to specify sandbox API**
 
 ```json
 {
