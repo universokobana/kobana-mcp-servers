@@ -18,7 +18,7 @@
     "build": "npm run build --workspaces"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.25.1",
     "zod": "^3.23.0"
   },
   "devDependencies": {

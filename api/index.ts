@@ -1,10 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 // Import tools from each MCP package
@@ -77,18 +73,6 @@ function getConfig(authHeader: string | null, apiUrlHeader: string | null): Conf
   };
 }
 
-interface ActiveTransport {
-  transport: SSEServerTransport;
-  server: Server;
-  namespace: string;
-}
-
-const activeTransports = new Map<string, ActiveTransport>();
-
-function generateSessionId(): string {
-  return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-}
-
 function getToolsForNamespace(namespace: string): ToolDefinition[] {
   switch (namespace) {
     case 'admin': return adminTools as ToolDefinition[];
@@ -115,145 +99,49 @@ function getApiClientForNamespace(namespace: string, config: Config): unknown {
   }
 }
 
-function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
-  if (schema instanceof z.ZodObject) {
-    const shape = schema.shape;
-    const properties: Record<string, unknown> = {};
-    const required: string[] = [];
-
-    for (const [key, value] of Object.entries(shape)) {
-      const zodValue = value as z.ZodType;
-      properties[key] = zodToJsonSchemaProperty(zodValue);
-      if (!(zodValue instanceof z.ZodOptional)) {
-        required.push(key);
-      }
-    }
-
-    return {
-      type: 'object',
-      properties,
-      required: required.length > 0 ? required : undefined,
-    };
-  }
-  return { type: 'object', properties: {} };
-}
-
-function zodToJsonSchemaProperty(schema: z.ZodType): Record<string, unknown> {
-  if (schema instanceof z.ZodOptional) {
-    return zodToJsonSchemaProperty(schema.unwrap());
-  }
-  if (schema instanceof z.ZodString) {
-    return { type: 'string', description: schema.description };
-  }
-  if (schema instanceof z.ZodNumber) {
-    return { type: 'number', description: schema.description };
-  }
-  if (schema instanceof z.ZodBoolean) {
-    return { type: 'boolean', description: schema.description };
-  }
-  if (schema instanceof z.ZodEnum) {
-    return { type: 'string', enum: schema.options, description: schema.description };
-  }
-  if (schema instanceof z.ZodArray) {
-    return {
-      type: 'array',
-      items: zodToJsonSchemaProperty(schema.element),
-      description: schema.description,
-    };
-  }
-  if (schema instanceof z.ZodUnion) {
-    const options = schema.options as z.ZodType[];
-    return {
-      oneOf: options.map((opt) => zodToJsonSchemaProperty(opt)),
-      description: schema.description,
-    };
-  }
-  if (schema instanceof z.ZodRecord) {
-    return {
-      type: 'object',
-      additionalProperties: true,
-      description: schema.description,
-    };
-  }
-  if (schema instanceof z.ZodObject) {
-    const shape = schema.shape;
-    const properties: Record<string, unknown> = {};
-    const required: string[] = [];
-    for (const [key, value] of Object.entries(shape)) {
-      const zodValue = value as z.ZodType;
-      properties[key] = zodToJsonSchemaProperty(zodValue);
-      if (!(zodValue instanceof z.ZodOptional)) {
-        required.push(key);
-      }
-    }
-    return {
-      type: 'object',
-      properties,
-      required: required.length > 0 ? required : undefined,
-      description: schema.description,
-    };
-  }
-  return { type: 'string' };
-}
-
-function createMcpServer(namespace: string, config: Config): Server {
+function createMcpServer(namespace: string, config: Config): McpServer {
   const tools = getToolsForNamespace(namespace);
   const apiClient = getApiClientForNamespace(namespace, config);
 
-  const server = new Server(
-    { name: `kobana-mcp-${namespace}`, version: '1.0.0' },
-    { capabilities: { tools: {} } }
-  );
-
-  const toolsMap = new Map<string, ToolDefinition>();
-  for (const tool of tools) {
-    toolsMap.set(tool.name, tool);
-  }
-
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: tools.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: zodToJsonSchema(tool.inputSchema),
-    })),
-  }));
-
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-    const tool = toolsMap.get(name);
-
-    if (!tool) {
-      return {
-        content: [{ type: 'text', text: JSON.stringify({ error: `Unknown tool: ${name}` }) }],
-        isError: true,
-      };
-    }
-
-    try {
-      const result = await tool.handler(apiClient, args || {});
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return {
-        content: [{ type: 'text', text: JSON.stringify({ error: errorMessage }) }],
-        isError: true,
-      };
-    }
+  const server = new McpServer({
+    name: `kobana-mcp-${namespace}`,
+    version: '1.0.0',
   });
+
+  // Register all tools for this namespace
+  for (const tool of tools) {
+    server.tool(
+      tool.name,
+      tool.description,
+      tool.inputSchema instanceof z.ZodObject ? tool.inputSchema.shape : {},
+      async (args: unknown) => {
+        try {
+          const result = await tool.handler(apiClient, args);
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+          };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify({ error: errorMessage }) }],
+            isError: true,
+          };
+        }
+      }
+    );
+  }
 
   return server;
 }
 
 function setCorsHeaders(res: VercelResponse): void {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Kobana-Api-Url');
-  res.setHeader('Access-Control-Expose-Headers', 'X-Session-Id');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Kobana-Api-Url, mcp-session-id, mcp-protocol-version');
+  res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id, mcp-protocol-version');
 }
 
-async function handleSSE(req: VercelRequest, res: VercelResponse, ns: NamespaceConfig): Promise<void> {
+async function handleMcp(req: VercelRequest, res: VercelResponse, ns: NamespaceConfig): Promise<void> {
   let config: Config;
   try {
     config = getConfig(
@@ -265,45 +153,28 @@ async function handleSSE(req: VercelRequest, res: VercelResponse, ns: NamespaceC
     return;
   }
 
-  const sessionId = generateSessionId();
-  res.setHeader('X-Session-Id', sessionId);
-
+  // Create a new server and transport for each request (stateless mode)
   const server = createMcpServer(ns.name, config);
-  const transport = new SSEServerTransport(`${ns.path}/messages`, res as unknown as import('http').ServerResponse);
 
-  activeTransports.set(sessionId, { transport, server, namespace: ns.name });
-
-  res.on('close', () => {
-    activeTransports.delete(sessionId);
+  // Stateless transport - no session management
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined, // Stateless mode
   });
 
+  // Connect server to transport
   await server.connect(transport);
-}
-
-async function handleMessage(req: VercelRequest, res: VercelResponse): Promise<void> {
-  const sessionId = req.query.sessionId as string;
-
-  if (!sessionId) {
-    res.status(400).json({ error: 'Missing sessionId parameter' });
-    return;
-  }
-
-  const active = activeTransports.get(sessionId);
-  if (!active) {
-    res.status(404).json({ error: 'Session not found' });
-    return;
-  }
 
   try {
-    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    await active.transport.handlePostMessage(
+    // Handle the request
+    await transport.handleRequest(
       req as unknown as import('http').IncomingMessage,
       res as unknown as import('http').ServerResponse,
-      body
+      req.body
     );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: message });
+  } finally {
+    // Clean up after request
+    await transport.close();
+    await server.close();
   }
 }
 
@@ -312,7 +183,7 @@ function handleHealth(res: VercelResponse): void {
     status: 'healthy',
     server: 'kobana-mcp-unified',
     version: '1.0.0',
-    activeSessions: activeTransports.size,
+    transport: 'streamable-http',
     namespaces: namespaces.map(ns => ns.name),
   });
 }
@@ -323,8 +194,7 @@ function handleInfo(res: VercelResponse): void {
     path: ns.path,
     description: ns.description,
     endpoints: {
-      sse: `${ns.path}/sse`,
-      messages: `${ns.path}/messages`,
+      mcp: `${ns.path}/mcp`,
     },
     tools: getToolsForNamespace(ns.name).map(t => t.name),
   }));
@@ -333,6 +203,7 @@ function handleInfo(res: VercelResponse): void {
     name: 'kobana-mcp-unified',
     version: '1.0.0',
     description: 'Unified Kobana MCP Server for all namespaces',
+    transport: 'streamable-http',
     namespaces: namespacesInfo,
     totalTools: namespaces.reduce((sum, ns) => sum + getToolsForNamespace(ns.name).length, 0),
   });
@@ -345,9 +216,9 @@ function handleNamespaceInfo(ns: NamespaceConfig, res: VercelResponse): void {
     name: `kobana-mcp-${ns.name}`,
     version: '1.0.0',
     description: ns.description,
+    transport: 'streamable-http',
     endpoints: {
-      sse: `${ns.path}/sse`,
-      messages: `${ns.path}/messages`,
+      mcp: `${ns.path}/mcp`,
       health: '/health',
     },
     tools: tools.map(t => t.name),
@@ -365,32 +236,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pathname = req.url?.split('?')[0] || '/';
 
   try {
+    // Health endpoint
     if (pathname === '/health' && req.method === 'GET') {
       handleHealth(res);
       return;
     }
 
+    // Root info endpoint
     if ((pathname === '/' || pathname === '/api' || pathname === '/api/') && req.method === 'GET') {
       handleInfo(res);
       return;
     }
 
+    // Namespace endpoints
     const ns = getNamespaceByPath(pathname);
     if (ns) {
       const subpath = pathname.slice(ns.path.length);
 
+      // Namespace info
       if (subpath === '' || subpath === '/') {
         handleNamespaceInfo(ns, res);
         return;
       }
 
-      if (subpath === '/sse' && req.method === 'GET') {
-        await handleSSE(req, res, ns);
-        return;
-      }
-
-      if (subpath === '/messages' && req.method === 'POST') {
-        await handleMessage(req, res);
+      // MCP endpoint - handles both GET and POST for Streamable HTTP
+      if (subpath === '/mcp') {
+        await handleMcp(req, res, ns);
         return;
       }
     }
