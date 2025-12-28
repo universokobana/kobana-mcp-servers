@@ -304,7 +304,7 @@ Common transfer purpose codes:
 
 ## About Kobana
 
-Kobana is a financial automation platform. Learn more at: https://ai.kobana.com.br
+Kobana is a financial automation platform. Learn more at: https://www.kobana.com.br
 
 ## License
 
