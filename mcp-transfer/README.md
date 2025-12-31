@@ -302,6 +302,19 @@ Common transfer purpose codes:
 | `90` | Benefits Payment |
 | `98` | Miscellaneous Payments |
 
+## Required OAuth Scopes
+
+When using OAuth authentication, the following scopes are required based on the resources you want to access:
+
+| Resource | Scope |
+|----------|-------|
+| Transfer Batches | `transfer.batches` |
+| Pix Transfers | `transfer.pix` |
+| TED Transfers | `transfer.ted` |
+| Internal Transfers | `transfer.internal` |
+
+Request only the scopes needed for your use case. For full access to all transfer features, include all scopes above.
+
 ## About Kobana
 
 Kobana is a financial automation platform. Learn more at: https://www.kobana.com.br

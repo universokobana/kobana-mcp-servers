@@ -210,6 +210,21 @@ When running in HTTP mode:
 | `/sse` | GET | SSE connection for MCP |
 | `/messages` | POST | Send messages to MCP |
 
+## Required OAuth Scopes
+
+When using OAuth authentication, the following scopes are required based on the resources you want to access:
+
+| Resource | Scope |
+|----------|-------|
+| Bank Billet Payments | `payment.bank_billets` |
+| Pix Payments | `payment.pix` |
+| DARF Payments | `payment.darfs` |
+| Tax Payments | `payment.taxes` |
+| Utility Payments | `payment.utilities` |
+| Payment Batches | `payment.batches` |
+
+Request only the scopes needed for your use case. For full access to all payment features, include all scopes above.
+
 ## Development
 
 ```bash

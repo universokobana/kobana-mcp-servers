@@ -245,6 +245,14 @@ X-Kobana-Api-Url: https://api-sandbox.kobana.com.br
 | `creating` | Letter being created |
 | `created` | Letter created |
 
+## Required OAuth Scopes
+
+When using OAuth authentication, the following scopes are required based on the resources you want to access:
+
+| Resource | Scope |
+|----------|-------|
+| EDI Boxes | `integration.edi_boxes` |
+
 ## About Kobana
 
 Kobana is a financial automation platform. Learn more at: https://www.kobana.com.br

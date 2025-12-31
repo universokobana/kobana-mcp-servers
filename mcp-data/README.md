@@ -140,6 +140,14 @@ For HTTP transport, you can authenticate in two ways:
 
 Optionally, you can override the API URL with the `X-Kobana-Api-Url` header.
 
+## Required OAuth Scopes
+
+When using OAuth authentication, the following scopes are required based on the resources you want to access:
+
+| Resource | Scope |
+|----------|-------|
+| Bank Billet Queries | `data.bank_billet_queries` |
+
 ## Development
 
 ```bash

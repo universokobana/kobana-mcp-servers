@@ -175,6 +175,19 @@ Supports both:
 - `Authorization: Bearer <token>` header
 - `KOBANA_ACCESS_TOKEN` environment variable as fallback
 
+## Required OAuth Scopes
+
+When using OAuth authentication, the following scopes are required based on the resources you want to access:
+
+| Resource | Scope |
+|----------|-------|
+| Users | `admin.users` |
+| Subaccounts | `admin.subaccounts` |
+| Certificates | `integration.certificates` |
+| Connections | `integration.connections` |
+
+Request only the scopes needed for your use case. For full access to all admin features, include all scopes above.
+
 ## License
 
 MIT

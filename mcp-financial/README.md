@@ -127,6 +127,21 @@ For HTTP mode, you can pass the access token via:
 1. Environment variable `KOBANA_ACCESS_TOKEN`
 2. Authorization header: `Authorization: Bearer <token>`
 
+## Required OAuth Scopes
+
+When using OAuth authentication, the following scopes are required based on the resources you want to access:
+
+| Resource | Scope |
+|----------|-------|
+| Financial Providers | `financial.providers` |
+| Financial Accounts | `financial.accounts` |
+| Account Balances | `financial.balances` |
+| Account Commands | `financial.accounts` |
+| Statement Transactions | `financial.statement_transactions` |
+| Statement Transaction Imports | `financial.statement_transactions` |
+
+Request only the scopes needed for your use case. For full access to all financial features, include all scopes above.
+
 ## Development
 
 ```bash

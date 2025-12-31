@@ -233,6 +233,22 @@ X-Kobana-Api-Url: https://api-sandbox.kobana.com.br
 }
 ```
 
+## Required OAuth Scopes
+
+When using OAuth authentication, the following scopes are required based on the resources you want to access:
+
+| Resource | Scope |
+|----------|-------|
+| Pix Accounts | `charge.pix_accounts` |
+| Pix Charges | `charge.pix` |
+| Pix Commands | `charge.pix` |
+| Automatic Pix - Charges | `charge.automatic_pix.pix` |
+| Automatic Pix - Recurrences | `charge.automatic_pix.recurrences` |
+| Automatic Pix - Requests | `charge.automatic_pix.requests` |
+| Payments | `charge.payments` |
+
+Request only the scopes needed for your use case. For full access to all charge features, include all scopes above.
+
 ## About Kobana
 
 Kobana is a financial automation platform. Learn more at: https://www.kobana.com.br
