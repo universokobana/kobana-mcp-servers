@@ -3,6 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-admin.svg)](https://www.npmjs.com/package/kobana-mcp-admin)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-charge.svg)](https://www.npmjs.com/package/kobana-mcp-charge)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial)
+[![npm version](https://img.shields.io/npm/v/kobana-mcp-help.svg)](https://www.npmjs.com/package/kobana-mcp-help)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-payment.svg)](https://www.npmjs.com/package/kobana-mcp-payment)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-transfer.svg)](https://www.npmjs.com/package/kobana-mcp-transfer)
 
@@ -21,10 +22,11 @@ Kobana is a financial automation platform. Learn more at: https://www.kobana.com
 | [mcp-data](./mcp-data) | [![npm](https://img.shields.io/npm/v/kobana-mcp-data.svg)](https://www.npmjs.com/package/kobana-mcp-data) | 2 | Bank billet queries |
 | [mcp-edi](./mcp-edi) | [![npm](https://img.shields.io/npm/v/kobana-mcp-edi.svg)](https://www.npmjs.com/package/kobana-mcp-edi) | 4 | EDI boxes management |
 | [mcp-financial](./mcp-financial) | [![npm](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial) | 15 | Financial accounts, balances, statements |
+| [mcp-help](./mcp-help) | [![npm](https://img.shields.io/npm/v/kobana-mcp-help.svg)](https://www.npmjs.com/package/kobana-mcp-help) | 2 | Help Center articles (no auth required) |
 | [mcp-payment](./mcp-payment) | [![npm](https://img.shields.io/npm/v/kobana-mcp-payment.svg)](https://www.npmjs.com/package/kobana-mcp-payment) | 24 | Bank billets, Pix, DARF, taxes, utilities |
 | [mcp-transfer](./mcp-transfer) | [![npm](https://img.shields.io/npm/v/kobana-mcp-transfer.svg)](https://www.npmjs.com/package/kobana-mcp-transfer) | 16 | Pix, TED, internal transfers |
 
-**Total: 113 tools across 7 MCP servers**
+**Total: 115 tools across 8 MCP servers**
 
 ## Quick Start with npx
 
@@ -45,6 +47,9 @@ KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-edi
 
 # Financial (accounts, balances, statements)
 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-financial
+
+# Help (help center articles - no auth required)
+npx kobana-mcp-help
 
 # Payment (bank billets, pix, darf, taxes, utilities)
 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-payment
@@ -99,6 +104,10 @@ Add to your Claude Desktop configuration file:
       "env": {
         "KOBANA_ACCESS_TOKEN": "your_access_token"
       }
+    },
+    "kobana-help": {
+      "command": "npx",
+      "args": ["-y", "kobana-mcp-help"]
     },
     "kobana-payment": {
       "command": "npx",
@@ -169,8 +178,9 @@ PORT=3001 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-charge-http
 PORT=3002 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-data-http
 PORT=3003 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-edi-http
 PORT=3004 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-financial-http
-PORT=3005 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-payment-http
-PORT=3006 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-transfer-http
+PORT=3006 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-payment-http
+PORT=3007 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-transfer-http
+PORT=3005 npx kobana-mcp-help-http
 ```
 
 ## API Reference
@@ -296,6 +306,13 @@ PORT=3006 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-transfer-http
 | `create_financial_statement_transaction_import` | Create an import |
 | `get_financial_statement_transaction_import` | Get an import |
 
+### kobana-mcp-help (2 tools)
+
+| Tool | Description |
+|------|-------------|
+| `search_articles` | Search for help articles in the Kobana Help Center |
+| `get_article` | Get the full content of a help article in Markdown format |
+
 ### kobana-mcp-payment (24 tools)
 
 #### Bank Billets
@@ -397,6 +414,7 @@ kobana-mcp-server/
 ├── mcp-data/               # kobana-mcp-data package
 ├── mcp-edi/                # kobana-mcp-edi package
 ├── mcp-financial/          # kobana-mcp-financial package
+├── mcp-help/               # kobana-mcp-help package
 ├── mcp-payment/            # kobana-mcp-payment package
 ├── mcp-transfer/           # kobana-mcp-transfer package
 └── vercel-mcp/             # Unified server for Vercel deployment
@@ -436,6 +454,7 @@ Once deployed to `mcp.kobana.com.br`:
 | Data | `mcp.kobana.com.br/data/mcp` | Bank billet queries |
 | EDI | `mcp.kobana.com.br/edi/mcp` | EDI boxes |
 | Financial | `mcp.kobana.com.br/financial/mcp` | Accounts, balances |
+| Help | `mcp.kobana.com.br/help/mcp` | Help Center articles |
 | Payment | `mcp.kobana.com.br/payment/mcp` | Bank billets, taxes |
 | Transfer | `mcp.kobana.com.br/transfer/mcp` | Pix, TED, internal |
 
@@ -530,6 +549,7 @@ vercel --prod
    - Admin: `https://mcp.kobana.com.br/admin/mcp`
    - Charge: `https://mcp.kobana.com.br/charge/mcp`
    - Financial: `https://mcp.kobana.com.br/financial/mcp`
+   - Help: `https://mcp.kobana.com.br/help/mcp`
    - Payment: `https://mcp.kobana.com.br/payment/mcp`
    - Transfer: `https://mcp.kobana.com.br/transfer/mcp`
 4. Click **Connect** - you'll be redirected to Kobana to authorize
@@ -668,5 +688,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [kobana-mcp-data](https://www.npmjs.com/package/kobana-mcp-data)
 - [kobana-mcp-edi](https://www.npmjs.com/package/kobana-mcp-edi)
 - [kobana-mcp-financial](https://www.npmjs.com/package/kobana-mcp-financial)
+- [kobana-mcp-help](https://www.npmjs.com/package/kobana-mcp-help)
 - [kobana-mcp-payment](https://www.npmjs.com/package/kobana-mcp-payment)
 - [kobana-mcp-transfer](https://www.npmjs.com/package/kobana-mcp-transfer)
