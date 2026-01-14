@@ -5,6 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-help.svg)](https://www.npmjs.com/package/kobana-mcp-help)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-payment.svg)](https://www.npmjs.com/package/kobana-mcp-payment)
+[![npm version](https://img.shields.io/npm/v/kobana-mcp-site.svg)](https://www.npmjs.com/package/kobana-mcp-site)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-transfer.svg)](https://www.npmjs.com/package/kobana-mcp-transfer)
 
 MCP (Model Context Protocol) servers for the Kobana API v2. These servers enable AI assistants to interact with the Kobana financial automation platform.
@@ -24,9 +25,10 @@ Kobana is a financial automation platform. Learn more at: https://www.kobana.com
 | [mcp-financial](./mcp-financial) | [![npm](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial) | 15 | Financial accounts, balances, statements |
 | [mcp-help](./mcp-help) | [![npm](https://img.shields.io/npm/v/kobana-mcp-help.svg)](https://www.npmjs.com/package/kobana-mcp-help) | 2 | Help Center articles (no auth required) |
 | [mcp-payment](./mcp-payment) | [![npm](https://img.shields.io/npm/v/kobana-mcp-payment.svg)](https://www.npmjs.com/package/kobana-mcp-payment) | 24 | Bank billets, Pix, DARF, taxes, utilities |
+| [mcp-site](./mcp-site) | [![npm](https://img.shields.io/npm/v/kobana-mcp-site.svg)](https://www.npmjs.com/package/kobana-mcp-site) | 2 | Website content search (no auth required) |
 | [mcp-transfer](./mcp-transfer) | [![npm](https://img.shields.io/npm/v/kobana-mcp-transfer.svg)](https://www.npmjs.com/package/kobana-mcp-transfer) | 16 | Pix, TED, internal transfers |
 
-**Total: 115 tools across 8 MCP servers**
+**Total: 117 tools across 9 MCP servers**
 
 ## Quick Start with npx
 
@@ -50,6 +52,9 @@ KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-financial
 
 # Help (help center articles - no auth required)
 npx kobana-mcp-help
+
+# Site (website content search - no auth required)
+npx kobana-mcp-site
 
 # Payment (bank billets, pix, darf, taxes, utilities)
 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-payment
@@ -108,6 +113,10 @@ Add to your Claude Desktop configuration file:
     "kobana-help": {
       "command": "npx",
       "args": ["-y", "kobana-mcp-help"]
+    },
+    "kobana-site": {
+      "command": "npx",
+      "args": ["-y", "kobana-mcp-site"]
     },
     "kobana-payment": {
       "command": "npx",
@@ -181,6 +190,7 @@ PORT=3004 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-financial-http
 PORT=3006 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-payment-http
 PORT=3007 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-transfer-http
 PORT=3005 npx kobana-mcp-help-http
+PORT=3008 npx kobana-mcp-site-http
 ```
 
 ## API Reference
@@ -313,6 +323,13 @@ PORT=3005 npx kobana-mcp-help-http
 | `search_articles` | Search for help articles in the Kobana Help Center |
 | `get_article` | Get the full content of a help article in Markdown format |
 
+### kobana-mcp-site (2 tools)
+
+| Tool | Description |
+|------|-------------|
+| `search_pages` | Search for pages on the Kobana website by term |
+| `get_page` | Get the full content of a page with its live URL |
+
 ### kobana-mcp-payment (24 tools)
 
 #### Bank Billets
@@ -416,6 +433,7 @@ kobana-mcp-server/
 ├── mcp-financial/          # kobana-mcp-financial package
 ├── mcp-help/               # kobana-mcp-help package
 ├── mcp-payment/            # kobana-mcp-payment package
+├── mcp-site/               # kobana-mcp-site package
 ├── mcp-transfer/           # kobana-mcp-transfer package
 └── vercel-mcp/             # Unified server for Vercel deployment
 ```
@@ -690,4 +708,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [kobana-mcp-financial](https://www.npmjs.com/package/kobana-mcp-financial)
 - [kobana-mcp-help](https://www.npmjs.com/package/kobana-mcp-help)
 - [kobana-mcp-payment](https://www.npmjs.com/package/kobana-mcp-payment)
+- [kobana-mcp-site](https://www.npmjs.com/package/kobana-mcp-site)
 - [kobana-mcp-transfer](https://www.npmjs.com/package/kobana-mcp-transfer)
