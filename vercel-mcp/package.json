@@ -19,7 +19,7 @@
   "author": "Kobana",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
