@@ -6,7 +6,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "npm run build:deps && tsc",
-    "build:deps": "cd ../mcp-admin && npm run build && cd ../mcp-charge && npm run build && cd ../mcp-data && npm run build && cd ../mcp-edi && npm run build && cd ../mcp-financial && npm run build && cd ../mcp-payment && npm run build && cd ../mcp-transfer && npm run build",
+    "build:deps": "cd ../mcp-admin && npm run build && cd ../mcp-charge && npm run build && cd ../mcp-data && npm run build && cd ../mcp-edi && npm run build && cd ../mcp-financial && npm run build && cd ../mcp-payment && npm run build && cd ../mcp-transfer && npm run build && cd ../mcp-mailbox && npm run build",
     "dev": "tsc --watch",
     "start": "node dist/server.js",
     "vercel-build": "npm run build"

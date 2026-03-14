@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Kobana MCP Servers is a monorepo containing 7 Model Context Protocol (MCP) servers providing AI-native access to the Kobana financial automation API v2. Each server handles a specific domain: admin, charge, data, edi, financial, payment, and transfer.
+Kobana MCP Servers is a monorepo containing 8 Model Context Protocol (MCP) servers providing AI-native access to the Kobana financial automation API v2. Each server handles a specific domain: admin, charge, data, edi, financial, mailbox, payment, and transfer.
 
 ## Commands
 
@@ -77,7 +77,7 @@ Each server implements `zodToJsonSchema()` in `server.ts` to convert Zod schemas
 
 ### Vercel Unified Server
 
-`vercel-mcp/` aggregates all 7 servers with path-based routing:
+`vercel-mcp/` aggregates all 8 servers with path-based routing:
 - Paths: `/{namespace}/mcp` (e.g., `/financial/mcp`)
 - Imports tools/clients dynamically from each package
 

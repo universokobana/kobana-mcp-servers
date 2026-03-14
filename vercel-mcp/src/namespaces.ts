@@ -57,6 +57,13 @@ export const namespaces: NamespaceConfig[] = [
     serverName: 'kobana-mcp-transfer',
     toolPrefix: 'transfer',
   },
+  {
+    name: 'mailbox',
+    path: '/mailbox',
+    description: 'Mailbox entries, files, email/S3/SFTP/WhatsApp/Syncthing channels',
+    serverName: 'kobana-mcp-mailbox',
+    toolPrefix: 'mailbox',
+  },
 ];
 
 export function getNamespaceByPath(pathname: string): NamespaceConfig | null {

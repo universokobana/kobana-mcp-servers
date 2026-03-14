@@ -209,6 +209,183 @@
           }
         }
       ]
+    },
+    {
+      "name": "kobana-mcp-mailbox",
+      "namespace": "mailbox",
+      "description": "MCP Server for Kobana Mailbox API v2 (mailbox entries, files, email/S3/SFTP/WhatsApp/Syncthing channels)",
+      "version": "1.0.0",
+      "path": "./mcp-mailbox",
+      "entryPoints": {
+        "stdio": "dist/index.js",
+        "http": "dist/http-server.js"
+      },
+      "configuration": {
+        "required": [
+          {
+            "name": "KOBANA_ACCESS_TOKEN",
+            "description": "Bearer access token for Kobana API"
+          }
+        ],
+        "optional": [
+          {
+            "name": "KOBANA_API_URL",
+            "description": "Base URL for Kobana API",
+            "default": "https://api.kobana.com.br"
+          },
+          {
+            "name": "PORT",
+            "description": "HTTP server port (http mode only)",
+            "default": "3001"
+          },
+          {
+            "name": "HOST",
+            "description": "HTTP server host (http mode only)",
+            "default": "0.0.0.0"
+          }
+        ]
+      },
+      "resources": [
+        {
+          "name": "mailbox_entries",
+          "description": "Mailbox entries (caixas postais)",
+          "apiPath": "/v2/mailbox/entries"
+        },
+        {
+          "name": "mailbox_files",
+          "description": "Mailbox files",
+          "apiPath": "/v2/mailbox/files"
+        },
+        {
+          "name": "mailbox_email_channel",
+          "description": "Email channel for mailbox entries",
+          "apiPath": "/v2/mailbox/entries/{entry_id}/email"
+        },
+        {
+          "name": "mailbox_s3_channel",
+          "description": "S3 channel for mailbox entries",
+          "apiPath": "/v2/mailbox/entries/{entry_id}/s3"
+        },
+        {
+          "name": "mailbox_sftp_channel",
+          "description": "SFTP channel for mailbox entries",
+          "apiPath": "/v2/mailbox/entries/{entry_id}/sftp"
+        },
+        {
+          "name": "mailbox_whatsapp_channel",
+          "description": "WhatsApp channel for mailbox entries",
+          "apiPath": "/v2/mailbox/entries/{entry_id}/whatsapp"
+        },
+        {
+          "name": "mailbox_syncthing_channel",
+          "description": "Syncthing channel for mailbox entries",
+          "apiPath": "/v2/mailbox/entries/{entry_id}/syncthing"
+        }
+      ],
+      "tools": [
+        {
+          "name": "list_mailbox_entries",
+          "resource": "mailbox_entries",
+          "method": "GET",
+          "description": "List all mailbox entries",
+          "parameters": {
+            "page": "Page number (optional)",
+            "per_page": "Items per page, max 50 (optional)"
+          }
+        },
+        {
+          "name": "get_mailbox_entry",
+          "resource": "mailbox_entries",
+          "method": "GET",
+          "description": "Get details of a specific mailbox entry",
+          "parameters": {
+            "uid": "Mailbox entry UID (required)"
+          }
+        },
+        {
+          "name": "create_mailbox_entry",
+          "resource": "mailbox_entries",
+          "method": "POST",
+          "description": "Create a new mailbox entry",
+          "parameters": {
+            "name": "Display name (required)",
+            "kind": "Type: document, import_export, or edi_cnab (required)",
+            "slug": "User-friendly unique identifier (optional)",
+            "send_encrypted": "Whether to encrypt uploaded files (optional)",
+            "receive_encrypted": "Whether received files are encrypted (optional)",
+            "external_id": "External identifier (optional)",
+            "custom_data": "Custom JSON data (optional)",
+            "tags": "Tags for categorization (optional)"
+          }
+        },
+        {
+          "name": "update_mailbox_entry",
+          "resource": "mailbox_entries",
+          "method": "PATCH",
+          "description": "Update an existing mailbox entry",
+          "parameters": {
+            "uid": "Mailbox entry UID (required)"
+          }
+        },
+        {
+          "name": "delete_mailbox_entry",
+          "resource": "mailbox_entries",
+          "method": "DELETE",
+          "description": "Delete a mailbox entry",
+          "parameters": {
+            "uid": "Mailbox entry UID (required)"
+          }
+        },
+        {
+          "name": "list_mailbox_files",
+          "resource": "mailbox_files",
+          "method": "GET",
+          "description": "List all mailbox files",
+          "parameters": {
+            "page": "Page number (optional)",
+            "per_page": "Items per page (optional)"
+          }
+        },
+        {
+          "name": "get_mailbox_file",
+          "resource": "mailbox_files",
+          "method": "GET",
+          "description": "Get a specific mailbox file",
+          "parameters": {
+            "uid": "File UID (required)"
+          }
+        },
+        {
+          "name": "create_mailbox_file",
+          "resource": "mailbox_files",
+          "method": "POST",
+          "description": "Upload a file to a mailbox entry",
+          "parameters": {
+            "entry_uid": "Mailbox entry UID (required)",
+            "name": "File name (required)",
+            "content_base64": "Base64-encoded file content (optional)",
+            "content_type": "MIME type (optional)"
+          }
+        },
+        {
+          "name": "update_mailbox_file",
+          "resource": "mailbox_files",
+          "method": "PATCH",
+          "description": "Update mailbox file metadata",
+          "parameters": {
+            "uid": "File UID (required)"
+          }
+        },
+        {
+          "name": "delete_mailbox_file",
+          "resource": "mailbox_files",
+          "method": "DELETE",
+          "description": "Delete a mailbox file",
+          "parameters": {
+            "uid": "File UID (required)"
+          }
+        }
+      ]
     }
   ]
 }

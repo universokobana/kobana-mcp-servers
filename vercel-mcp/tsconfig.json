@@ -21,7 +21,8 @@
       "mcp-edi/*": ["mcp-edi/*"],
       "mcp-financial/*": ["mcp-financial/*"],
       "mcp-payment/*": ["mcp-payment/*"],
-      "mcp-transfer/*": ["mcp-transfer/*"]
+      "mcp-transfer/*": ["mcp-transfer/*"],
+      "mcp-mailbox/*": ["mcp-mailbox/*"]
     }
   },
   "include": ["src/**/*"],

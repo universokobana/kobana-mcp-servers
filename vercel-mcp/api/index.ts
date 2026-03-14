@@ -17,6 +17,7 @@ import { allTools as ediTools } from '../../mcp-edi/dist/tools/index.js';
 import { allTools as financialTools } from '../../mcp-financial/dist/tools/index.js';
 import { allTools as paymentTools } from '../../mcp-payment/dist/tools/index.js';
 import { allTools as transferTools } from '../../mcp-transfer/dist/tools/index.js';
+import { allTools as mailboxTools } from '../../mcp-mailbox/dist/tools/index.js';
 
 // Import API clients from each MCP package
 import { KobanaApiClient as AdminApiClient } from '../../mcp-admin/dist/api/client.js';
@@ -26,6 +27,7 @@ import { KobanaApiClient as EdiApiClient } from '../../mcp-edi/dist/api/client.j
 import { KobanaApiClient as FinancialApiClient } from '../../mcp-financial/dist/api/client.js';
 import { KobanaApiClient as PaymentApiClient } from '../../mcp-payment/dist/api/client.js';
 import { KobanaApiClient as TransferApiClient } from '../../mcp-transfer/dist/api/client.js';
+import { KobanaApiClient as MailboxApiClient } from '../../mcp-mailbox/dist/api/client.js';
 
 interface ToolDefinition {
   name: string;
@@ -56,6 +58,7 @@ function getToolsForNamespace(namespace: string): ToolDefinition[] {
     case 'financial': return financialTools as ToolDefinition[];
     case 'payment': return paymentTools as ToolDefinition[];
     case 'transfer': return transferTools as ToolDefinition[];
+    case 'mailbox': return mailboxTools as ToolDefinition[];
     default: return [];
   }
 }
@@ -69,6 +72,7 @@ function getApiClientForNamespace(namespace: string, config: Config): unknown {
     case 'financial': return new FinancialApiClient(config);
     case 'payment': return new PaymentApiClient(config);
     case 'transfer': return new TransferApiClient(config);
+    case 'mailbox': return new MailboxApiClient(config);
     default: return null;
   }
 }

@@ -12,6 +12,7 @@
     "mcp-financial",
     "mcp-payment",
     "mcp-transfer",
+    "mcp-mailbox",
     "vercel-mcp"
   ],
   "scripts": {

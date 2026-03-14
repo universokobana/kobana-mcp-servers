@@ -4,6 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-charge.svg)](https://www.npmjs.com/package/kobana-mcp-charge)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-help.svg)](https://www.npmjs.com/package/kobana-mcp-help)
+[![npm version](https://img.shields.io/npm/v/kobana-mcp-mailbox.svg)](https://www.npmjs.com/package/kobana-mcp-mailbox)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-payment.svg)](https://www.npmjs.com/package/kobana-mcp-payment)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-site.svg)](https://www.npmjs.com/package/kobana-mcp-site)
 [![npm version](https://img.shields.io/npm/v/kobana-mcp-transfer.svg)](https://www.npmjs.com/package/kobana-mcp-transfer)
@@ -24,11 +25,12 @@ Kobana is a financial automation platform. Learn more at: https://www.kobana.com
 | [mcp-edi](./mcp-edi) | [![npm](https://img.shields.io/npm/v/kobana-mcp-edi.svg)](https://www.npmjs.com/package/kobana-mcp-edi) | 4 | EDI boxes management |
 | [mcp-financial](./mcp-financial) | [![npm](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial) | 15 | Financial accounts, balances, statements |
 | [mcp-help](./mcp-help) | [![npm](https://img.shields.io/npm/v/kobana-mcp-help.svg)](https://www.npmjs.com/package/kobana-mcp-help) | 2 | Help Center articles (no auth required) |
+| [mcp-mailbox](./mcp-mailbox) | [![npm](https://img.shields.io/npm/v/kobana-mcp-mailbox.svg)](https://www.npmjs.com/package/kobana-mcp-mailbox) | 41 | Mailbox entries, files, email/S3/SFTP/WhatsApp/Syncthing channels |
 | [mcp-payment](./mcp-payment) | [![npm](https://img.shields.io/npm/v/kobana-mcp-payment.svg)](https://www.npmjs.com/package/kobana-mcp-payment) | 24 | Bank billets, Pix, DARF, taxes, utilities |
 | [mcp-site](./mcp-site) | [![npm](https://img.shields.io/npm/v/kobana-mcp-site.svg)](https://www.npmjs.com/package/kobana-mcp-site) | 2 | Website content search (no auth required) |
 | [mcp-transfer](./mcp-transfer) | [![npm](https://img.shields.io/npm/v/kobana-mcp-transfer.svg)](https://www.npmjs.com/package/kobana-mcp-transfer) | 16 | Pix, TED, internal transfers |
 
-**Total: 117 tools across 9 MCP servers**
+**Total: 158 tools across 10 MCP servers**
 
 ## Quick Start with npx
 
@@ -52,6 +54,9 @@ KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-financial
 
 # Help (help center articles - no auth required)
 npx kobana-mcp-help
+
+# Mailbox (mailbox entries, files, channels)
+KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-mailbox
 
 # Site (website content search - no auth required)
 npx kobana-mcp-site
@@ -113,6 +118,13 @@ Add to your Claude Desktop configuration file:
     "kobana-help": {
       "command": "npx",
       "args": ["-y", "kobana-mcp-help"]
+    },
+    "kobana-mailbox": {
+      "command": "npx",
+      "args": ["-y", "kobana-mcp-mailbox"],
+      "env": {
+        "KOBANA_ACCESS_TOKEN": "your_access_token"
+      }
     },
     "kobana-site": {
       "command": "npx",
@@ -191,6 +203,7 @@ PORT=3006 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-payment-http
 PORT=3007 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-transfer-http
 PORT=3005 npx kobana-mcp-help-http
 PORT=3008 npx kobana-mcp-site-http
+PORT=3009 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-mailbox-http
 ```
 
 ## API Reference
@@ -380,6 +393,80 @@ PORT=3008 npx kobana-mcp-site-http
 | `approve_payment_batch` | Approve a batch |
 | `reprove_payment_batch` | Reprove a batch |
 
+### kobana-mcp-mailbox (41 tools)
+
+#### Mailbox Entries
+| Tool | Description |
+|------|-------------|
+| `list_mailbox_entries` | List all mailbox entries |
+| `get_mailbox_entry` | Get a specific mailbox entry |
+| `create_mailbox_entry` | Create a new mailbox entry |
+| `update_mailbox_entry` | Update a mailbox entry |
+| `delete_mailbox_entry` | Delete a mailbox entry |
+
+#### Mailbox Files
+| Tool | Description |
+|------|-------------|
+| `list_mailbox_files` | List all mailbox files |
+| `get_mailbox_file` | Get a specific mailbox file |
+| `create_mailbox_file` | Upload a file to a mailbox entry |
+| `update_mailbox_file` | Update mailbox file metadata |
+| `delete_mailbox_file` | Delete a mailbox file |
+
+#### Email Channel
+| Tool | Description |
+|------|-------------|
+| `get_mailbox_email_channel` | Get email channel configuration |
+| `create_mailbox_email_channel` | Create an email channel |
+| `update_mailbox_email_channel` | Update email channel |
+| `delete_mailbox_email_channel` | Delete email channel |
+| `activate_mailbox_email_channel` | Activate email channel |
+| `deactivate_mailbox_email_channel` | Deactivate email channel |
+
+#### S3 Channel
+| Tool | Description |
+|------|-------------|
+| `get_mailbox_s3_channel` | Get S3 channel configuration |
+| `create_mailbox_s3_channel` | Create an S3 channel |
+| `delete_mailbox_s3_channel` | Delete S3 channel |
+| `activate_mailbox_s3_channel` | Activate S3 channel |
+| `deactivate_mailbox_s3_channel` | Deactivate S3 channel |
+| `update_mailbox_s3_credentials` | Update AWS credentials |
+
+#### SFTP Channel
+| Tool | Description |
+|------|-------------|
+| `get_mailbox_sftp_channel` | Get SFTP channel configuration |
+| `create_mailbox_sftp_channel` | Create an SFTP channel |
+| `update_mailbox_sftp_channel` | Update SFTP channel |
+| `delete_mailbox_sftp_channel` | Delete SFTP channel |
+| `activate_mailbox_sftp_channel` | Activate SFTP channel |
+| `deactivate_mailbox_sftp_channel` | Deactivate SFTP channel |
+| `fetch_mailbox_sftp_files` | Fetch files from SFTP server |
+| `update_mailbox_sftp_credentials` | Update SSH credentials |
+
+#### WhatsApp Channel
+| Tool | Description |
+|------|-------------|
+| `get_mailbox_whatsapp_channel` | Get WhatsApp channel configuration |
+| `create_mailbox_whatsapp_channel` | Create a WhatsApp channel |
+| `update_mailbox_whatsapp_channel` | Update WhatsApp channel |
+| `delete_mailbox_whatsapp_channel` | Delete WhatsApp channel |
+| `activate_mailbox_whatsapp_channel` | Activate WhatsApp channel |
+| `deactivate_mailbox_whatsapp_channel` | Deactivate WhatsApp channel |
+
+#### Syncthing Channel
+| Tool | Description |
+|------|-------------|
+| `get_mailbox_syncthing_channel` | Get Syncthing channel configuration |
+| `create_mailbox_syncthing_channel` | Create a Syncthing channel |
+| `update_mailbox_syncthing_channel` | Update Syncthing channel |
+| `delete_mailbox_syncthing_channel` | Delete Syncthing channel |
+| `activate_mailbox_syncthing_channel` | Activate Syncthing channel |
+| `deactivate_mailbox_syncthing_channel` | Deactivate Syncthing channel |
+| `resend_mailbox_syncthing_invites` | Resend Syncthing invites |
+| `update_mailbox_syncthing_status` | Update Syncthing server status |
+
 ### kobana-mcp-transfer (16 tools)
 
 #### Transfer Batches
@@ -432,6 +519,7 @@ kobana-mcp-server/
 ├── mcp-edi/                # kobana-mcp-edi package
 ├── mcp-financial/          # kobana-mcp-financial package
 ├── mcp-help/               # kobana-mcp-help package
+├── mcp-mailbox/            # kobana-mcp-mailbox package
 ├── mcp-payment/            # kobana-mcp-payment package
 ├── mcp-site/               # kobana-mcp-site package
 ├── mcp-transfer/           # kobana-mcp-transfer package
@@ -473,6 +561,7 @@ Once deployed to `mcp.kobana.com.br`:
 | EDI | `mcp.kobana.com.br/edi/mcp` | EDI boxes |
 | Financial | `mcp.kobana.com.br/financial/mcp` | Accounts, balances |
 | Help | `mcp.kobana.com.br/help/mcp` | Help Center articles |
+| Mailbox | `mcp.kobana.com.br/mailbox/mcp` | Mailbox entries, files, channels |
 | Payment | `mcp.kobana.com.br/payment/mcp` | Bank billets, taxes |
 | Transfer | `mcp.kobana.com.br/transfer/mcp` | Pix, TED, internal |
 
@@ -568,6 +657,7 @@ vercel --prod
    - Charge: `https://mcp.kobana.com.br/charge/mcp`
    - Financial: `https://mcp.kobana.com.br/financial/mcp`
    - Help: `https://mcp.kobana.com.br/help/mcp`
+   - Mailbox: `https://mcp.kobana.com.br/mailbox/mcp`
    - Payment: `https://mcp.kobana.com.br/payment/mcp`
    - Transfer: `https://mcp.kobana.com.br/transfer/mcp`
 4. Click **Connect** - you'll be redirected to Kobana to authorize
@@ -707,6 +797,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [kobana-mcp-edi](https://www.npmjs.com/package/kobana-mcp-edi)
 - [kobana-mcp-financial](https://www.npmjs.com/package/kobana-mcp-financial)
 - [kobana-mcp-help](https://www.npmjs.com/package/kobana-mcp-help)
+- [kobana-mcp-mailbox](https://www.npmjs.com/package/kobana-mcp-mailbox)
 - [kobana-mcp-payment](https://www.npmjs.com/package/kobana-mcp-payment)
 - [kobana-mcp-site](https://www.npmjs.com/package/kobana-mcp-site)
 - [kobana-mcp-transfer](https://www.npmjs.com/package/kobana-mcp-transfer)
