@@ -19,7 +19,7 @@
     "build": "npm run build --workspaces"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "ioredis": "^5.8.2",
     "zod": "^3.23.0"
   },
