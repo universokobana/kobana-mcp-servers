@@ -1,6 +1,6 @@
 {
   "name": "kobana-mcp-mailbox",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP Server for Kobana Mailbox API v2 (mailbox entries, files, email/S3/SFTP/WhatsApp/Syncthing channels)",
   "type": "module",
   "main": "dist/index.js",
