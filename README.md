@@ -68,104 +68,225 @@ KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-payment
 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-transfer
 ```
 
-## Usage with Claude Desktop
+## Using with MCP clients
 
-Add to your Claude Desktop configuration file:
+There are two ways to consume these servers, and each client below supports
+one or both.
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+1. **Remote Custom Connector (recommended).** Point the client at the hosted
+   MCP server: `https://mcp.kobana.com.br/{namespace}/mcp`. The endpoint
+   implements OAuth 2.1 + PKCE + Dynamic Client Registration, so the user
+   never pastes a client id/secret — the client negotiates everything with
+   Kobana automatically in the browser. Each namespace is its own connector;
+   add only the ones you need.
+2. **Local stdio via `npx`.** Run each server locally as a child process from
+   its npm package (see [Quick Start with npx](#quick-start-with-npx)).
+   Requires a personal `KOBANA_ACCESS_TOKEN`. Works with every MCP client,
+   including ones that do not yet support remote MCP or OAuth.
 
-### All Servers Configuration
+### Remote endpoints
+
+| Namespace | Remote URL |
+|---|---|
+| Admin     | `https://mcp.kobana.com.br/admin/mcp` |
+| Charge    | `https://mcp.kobana.com.br/charge/mcp` |
+| Data      | `https://mcp.kobana.com.br/data/mcp` |
+| EDI       | `https://mcp.kobana.com.br/edi/mcp` |
+| Financial | `https://mcp.kobana.com.br/financial/mcp` |
+| Mailbox   | `https://mcp.kobana.com.br/mailbox/mcp` |
+| Payment   | `https://mcp.kobana.com.br/payment/mcp` |
+| Transfer  | `https://mcp.kobana.com.br/transfer/mcp` |
+
+> `kobana-mcp-help` and `kobana-mcp-site` are not exposed remotely (they do
+> not need authentication and are best run locally via npx).
+>
+> For the sandbox, swap `mcp.kobana.com.br` for `mcp-sandbox.kobana.com.br`.
+
+The examples below use the `financial` namespace. Every other namespace works
+the same way — just change the path (`/charge/mcp`, `/payment/mcp`, etc.) or
+the npm package name (`kobana-mcp-charge`, `kobana-mcp-payment`, etc.).
+
+### Claude Desktop
+
+**Remote (recommended).** Settings → **Connectors → Add Custom Connector**.
+Paste the URL, leave the Advanced settings empty, click **Add**, and complete
+the Kobana login in the browser window that opens.
+
+- URL: `https://mcp.kobana.com.br/financial/mcp`
+
+**Local (stdio).** Edit your desktop config file:
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
-    "kobana-admin": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-admin"],
-      "env": {
-        "KOBANA_ACCESS_TOKEN": "your_access_token"
-      }
-    },
-    "kobana-charge": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-charge"],
-      "env": {
-        "KOBANA_ACCESS_TOKEN": "your_access_token"
-      }
-    },
-    "kobana-data": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-data"],
-      "env": {
-        "KOBANA_ACCESS_TOKEN": "your_access_token"
-      }
-    },
-    "kobana-edi": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-edi"],
-      "env": {
-        "KOBANA_ACCESS_TOKEN": "your_access_token"
-      }
-    },
     "kobana-financial": {
       "command": "npx",
       "args": ["-y", "kobana-mcp-financial"],
       "env": {
-        "KOBANA_ACCESS_TOKEN": "your_access_token"
-      }
-    },
-    "kobana-help": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-help"]
-    },
-    "kobana-mailbox": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-mailbox"],
-      "env": {
-        "KOBANA_ACCESS_TOKEN": "your_access_token"
-      }
-    },
-    "kobana-site": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-site"]
-    },
-    "kobana-payment": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-payment"],
-      "env": {
-        "KOBANA_ACCESS_TOKEN": "your_access_token"
-      }
-    },
-    "kobana-transfer": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-transfer"],
-      "env": {
-        "KOBANA_ACCESS_TOKEN": "your_access_token"
+        "KOBANA_ACCESS_TOKEN": "your_access_token",
+        "KOBANA_API_BASE_URL": "https://api.kobana.com.br"
       }
     }
   }
 }
 ```
 
-### Sandbox Environment
+For sandbox, set `KOBANA_API_BASE_URL=https://api-sandbox.kobana.com.br`.
 
-For sandbox/testing, add `KOBANA_API_URL`:
+### Claude.ai (web)
+
+Customize → **Connectors → +** (Add custom connector). Paste the URL, leave
+Advanced settings empty, click Add. OAuth happens in a new browser tab. The
+connector is then available in every claude.ai conversation on your account.
+
+- URL: `https://mcp.kobana.com.br/financial/mcp`
+
+Available on Free, Pro, Max, Team, and Enterprise plans. Free accounts are
+limited to one custom connector at a time.
+
+### Claude Code (CLI)
+
+Use the built-in `claude mcp add` command with `--transport http`:
+
+```bash
+# Remote with automatic OAuth
+claude mcp add --transport http kobana-financial https://mcp.kobana.com.br/financial/mcp
+
+# Local stdio with a personal token
+claude mcp add kobana-financial -- npx -y kobana-mcp-financial \
+  --env KOBANA_ACCESS_TOKEN=your_access_token
+```
+
+On first tool use, Claude Code opens the browser to complete OAuth (Dynamic
+Client Registration is handled automatically). If your firewall blocks random
+localhost ports, use `--callback-port <port>` to pin the OAuth callback port.
+
+### ChatGPT (Pro/Business/Enterprise/Edu)
+
+1. Settings → **Apps & Connectors → Advanced settings** → enable **Developer
+   Mode** (required to add custom MCP servers in regular chats).
+2. Back in **Apps & Connectors**, click **Add → MCP server**.
+3. Fill in the form:
+   - **URL**: `https://mcp.kobana.com.br/financial/mcp`
+   - **Authentication**: `OAuth`
+   - **Name**: `Kobana Financial` (or whatever you prefer)
+4. Save. ChatGPT opens a browser tab to complete the Kobana login.
+
+> Developer Mode must be on for the MCP server to appear in regular
+> conversations; otherwise it is only usable from Deep Research mode.
+
+### Cursor
+
+**UI.** Settings → **Tools & MCP → New MCP Server**. A dialog opens with
+fields for name, transport, and URL. Choose HTTP and paste the remote URL.
+
+**Config file.** Or edit `~/.cursor/mcp.json` (global) or
+`.cursor/mcp.json` (per-project):
 
 ```json
 {
   "mcpServers": {
-    "kobana-charge": {
-      "command": "npx",
-      "args": ["-y", "kobana-mcp-charge"],
-      "env": {
-        "KOBANA_ACCESS_TOKEN": "your_sandbox_token",
-        "KOBANA_API_URL": "https://api-sandbox.kobana.com.br"
-      }
+    "kobana-financial": {
+      "url": "https://mcp.kobana.com.br/financial/mcp"
     }
   }
 }
 ```
+
+On first use, Cursor opens the browser for OAuth and stores the resulting
+credentials locally.
+
+### VS Code (GitHub Copilot / MCP)
+
+Edit `.vscode/mcp.json` (workspace) or your user-scope `mcp.json`:
+
+```json
+{
+  "servers": {
+    "kobana-financial": {
+      "type": "http",
+      "url": "https://mcp.kobana.com.br/financial/mcp"
+    }
+  }
+}
+```
+
+VS Code tries the Streamable HTTP transport first and falls back to SSE if
+the server does not support it. OAuth is handled by the editor on first use;
+you do not need to paste headers.
+
+### Windsurf
+
+Edit `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "kobana-financial": {
+      "serverUrl": "https://mcp.kobana.com.br/financial/mcp"
+    }
+  }
+}
+```
+
+> Windsurf uses `serverUrl` (not `url`) for remote servers. After saving,
+> **quit Windsurf completely and reopen it** — closing the editor window is
+> not enough to reload MCP servers.
+
+You can also open the config from the UI with `Cmd/Ctrl + ,` → search for
+"MCP" → Open `mcp_config.json`.
+
+### Manus
+
+Settings → **Connectors → Add Connectors → Custom MCP**. Either fill in the
+form manually or paste a JSON block:
+
+```json
+{
+  "mcpServers": {
+    "kobana-financial": {
+      "transport": "http",
+      "url": "https://mcp.kobana.com.br/financial/mcp"
+    }
+  }
+}
+```
+
+> If Manus has trouble completing the OAuth discovery handshake (the
+> `manus-mcp-cli` bridge historically preferred bearer tokens over DCR), fall
+> back to a static token by adding an explicit `Authorization` header:
+>
+> ```json
+> {
+>   "mcpServers": {
+>     "kobana-financial": {
+>       "transport": "http",
+>       "url": "https://mcp.kobana.com.br/financial/mcp",
+>       "headers": {
+>         "Authorization": "Bearer your_access_token"
+>       }
+>     }
+>   }
+> }
+> ```
+
+### Perplexity (Pro/Max/Enterprise)
+
+Settings → **Connectors → Add → Custom Connector**. Fill in:
+
+- **Name**: `Kobana Financial`
+- **URL**: `https://mcp.kobana.com.br/financial/mcp`
+- **Authentication**: `OAuth 2.0`
+- **Transport**: `Streamable HTTP`
+
+Because the server exposes `/.well-known/oauth-authorization-server` and
+supports Dynamic Client Registration, Perplexity discovers the endpoints and
+registers itself automatically — leave the Client ID / Client Secret fields
+empty. The connector is private to your Perplexity account; Enterprise admins
+can share it organization-wide from their settings panel.
 
 ## Configuration
 
