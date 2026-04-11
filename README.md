@@ -297,7 +297,7 @@ can share it organization-wide from their settings panel.
 | `KOBANA_ACCESS_TOKEN` | Yes | - | Bearer access token for Kobana API |
 | `KOBANA_API_BASE_URL` | No | `https://api.kobana.com.br` | Base URL for Kobana API |
 
-### Additional for OAuth 2.1 (Unified Server)
+### Additional for OAuth 2.1 (Unified Remote Server)
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
@@ -309,8 +309,6 @@ can share it organization-wide from their settings panel.
 | `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL |
 
 > **Note**: Redis is required for OAuth. Keys are prefixed with environment (e.g., `mcp:sandbox:*`), allowing shared Redis between environments.
->
-> **Migration note**: `KOBANA_API_URL` and `KOBANA_APP_URL` were renamed to `KOBANA_API_BASE_URL` and `KOBANA_APP_BASE_URL`. The `X-Kobana-Api-Url` request header is unchanged.
 
 ## Streamable HTTP Mode (Hosted)
 
@@ -645,8 +643,7 @@ kobana-mcp-server/
 ├── mcp-mailbox/            # kobana-mcp-mailbox package
 ├── mcp-payment/            # kobana-mcp-payment package
 ├── mcp-site/               # kobana-mcp-site package
-├── mcp-transfer/           # kobana-mcp-transfer package
-└── vercel-mcp/             # Unified server for Vercel deployment
+└── mcp-transfer/           # kobana-mcp-transfer package
 ```
 
 Each MCP package follows the same structure:
@@ -668,9 +665,11 @@ mcp-*/
     └── types/             # TypeScript types & Zod schemas
 ```
 
-## Vercel Deployment (Unified Server)
+## Unified Remote MCP Server
 
-Deploy all MCP servers as a single Vercel project with path-based routing.
+The unified remote MCP server is deployed at `mcp.kobana.com.br` — a single
+Vercel function that fans out to all 8 namespaces under `/{namespace}/mcp`,
+with OAuth 2.1 / PKCE and Redis-backed sessions.
 
 ### Endpoints
 
@@ -689,196 +688,6 @@ Once deployed to `mcp.kobana.com.br`:
 | Transfer | `mcp.kobana.com.br/transfer/mcp` | Pix, TED, internal |
 
 The server uses the Streamable HTTP transport, which is stateless and serverless-compatible.
-
-### Deploy to Vercel
-
-```bash
-# Clone repository
-git clone https://github.com/universokobana/kobana-mcp-servers.git
-cd kobana-mcp-servers
-
-# Deploy with Vercel CLI
-vercel
-
-# Set environment variable
-vercel env add KOBANA_ACCESS_TOKEN
-
-# Deploy to production
-vercel --prod
-```
-
-### Authentication
-
-The unified server supports two authentication methods:
-
-#### 1. Direct Token Authentication
-
-Pass the access token via:
-
-- **Environment variable**: Set `KOBANA_ACCESS_TOKEN` in Vercel
-- **Request header**: `Authorization: Bearer <token>`
-
-#### 2. OAuth 2.1 Authentication (Recommended for Claude Desktop)
-
-The server implements OAuth 2.1 with PKCE, allowing Claude Desktop to authenticate users automatically via Custom Connectors.
-
-**Step 1: Register OAuth Application in Kobana**
-
-1. Access the Kobana dashboard at https://app.kobana.com.br (or https://app-sandbox.kobana.com.br for sandbox)
-2. Navigate to Settings → OAuth Applications → Create Application
-3. Fill in the application details:
-   - **Name**: `Claude MCP Server` (or your preferred name)
-   - **Redirect URI**: `https://mcp.kobana.com.br/oauth/callback` (your server URL + `/oauth/callback`)
-4. Save and copy the generated `client_id` and `client_secret`
-
-> **Important**: The redirect URI must exactly match your deployed server URL followed by `/oauth/callback`.
->
-> Examples:
-> - Production: `https://mcp.kobana.com.br/oauth/callback`
-> - Sandbox: `https://mcp-sandbox.kobana.com.br/oauth/callback`
-> - Custom domain: `https://your-domain.com/oauth/callback`
-
-**Step 2: Configure Environment Variables**
-
-Set the following environment variables in Vercel:
-
-```bash
-# Required for OAuth
-vercel env add KOBANA_OAUTH_CLIENT_ID
-vercel env add KOBANA_OAUTH_CLIENT_SECRET
-vercel env add REDIS_URL              # Redis connection URL (e.g., redis://user:pass@host:port)
-
-# Optional (with defaults)
-vercel env add APP_ENVIRONMENT          # "production" (default) or "sandbox"
-vercel env add MCP_SERVER_URL           # Your server URL (e.g., https://mcp.kobana.com.br)
-vercel env add KOBANA_API_BASE_URL      # Kobana API base URL (default: https://api.kobana.com.br)
-vercel env add KOBANA_APP_BASE_URL      # Kobana app base URL (default: https://app.kobana.com.br)
-```
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `KOBANA_OAUTH_CLIENT_ID` | Yes | - | OAuth Client ID from Kobana |
-| `KOBANA_OAUTH_CLIENT_SECRET` | Yes | - | OAuth Client Secret |
-| `REDIS_URL` | Yes | - | Redis connection URL for session storage |
-| `APP_ENVIRONMENT` | No | `production` | Environment name (`sandbox` or `production`) |
-| `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL (used in OAuth metadata) |
-| `KOBANA_API_BASE_URL` | No | `https://api.kobana.com.br` | Kobana API base URL (use `https://api-sandbox.kobana.com.br` for sandbox) |
-| `KOBANA_APP_BASE_URL` | No | `https://app.kobana.com.br` | Kobana app base URL (use `https://app-sandbox.kobana.com.br` for sandbox) |
-
-> **Note**: Redis is required for OAuth session storage. Keys are prefixed with the environment name (e.g., `mcp:sandbox:session:*`), allowing you to share the same Redis instance between production and sandbox.
-
-**Step 3: Deploy**
-
-```bash
-vercel --prod
-```
-
-**Step 4: Connect from Claude Desktop**
-
-1. Open Claude Desktop (Pro, Max, Team, or Enterprise plan required)
-2. Go to **Settings → Connectors → Add Custom Connector**
-3. Enter the MCP server URL for your desired namespace:
-   - Admin: `https://mcp.kobana.com.br/admin/mcp`
-   - Charge: `https://mcp.kobana.com.br/charge/mcp`
-   - Financial: `https://mcp.kobana.com.br/financial/mcp`
-   - Help: `https://mcp.kobana.com.br/help/mcp`
-   - Mailbox: `https://mcp.kobana.com.br/mailbox/mcp`
-   - Payment: `https://mcp.kobana.com.br/payment/mcp`
-   - Transfer: `https://mcp.kobana.com.br/transfer/mcp`
-4. Click **Connect** - you'll be redirected to Kobana to authorize
-5. After authorization, the connector is ready to use
-
-**OAuth Endpoints Reference:**
-
-| Endpoint | Method | Spec | Description |
-|----------|--------|------|-------------|
-| `/.well-known/oauth-authorization-server` | GET | RFC 8414 | Authorization Server Metadata discovery |
-| `/.well-known/oauth-protected-resource[/{namespace}/mcp]` | GET | RFC 9728 | Protected Resource Metadata (per-namespace) |
-| `/register` | POST | RFC 7591 | Dynamic Client Registration (DCR) |
-| `/authorize` | GET | OAuth 2.1 | Authorization endpoint |
-| `/token` | POST | OAuth 2.1 | Token exchange (PKCE) |
-| `/oauth/callback` | GET | — | Internal Kobana OAuth callback |
-
-The Custom Connector flow works because the server returns `401` with a
-`WWW-Authenticate: Bearer resource_metadata="..."` header on unauthenticated
-requests to any `/{namespace}/mcp` endpoint. Claude Desktop discovers the
-authorization server via RFC 9728, registers itself dynamically via RFC 7591,
-and runs the OAuth 2.1 + PKCE flow against `/authorize` and `/token`. No manual
-Client ID/Secret needs to be entered in the Custom Connector dialog.
-
-For detailed OAuth flow documentation, see [docs/oauth.md](./docs/oauth.md).
-
-### Claude Desktop with Remote MCP (Token-based)
-
-```json
-{
-  "mcpServers": {
-    "kobana-charge": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "https://mcp.kobana.com.br/charge/mcp",
-        "--header",
-        "Authorization: Bearer your_access_token"
-      ]
-    }
-  }
-}
-```
-
-#### Using Sandbox Environment
-
-**Option 1: Use the sandbox host directly (recommended)**
-
-```json
-{
-  "mcpServers": {
-    "kobana-charge": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "https://mcp-sandbox.kobana.com.br/charge/mcp",
-        "--header",
-        "Authorization: Bearer your_sandbox_token"
-      ]
-    }
-  }
-}
-```
-
-**Option 2: Use the header to specify sandbox API**
-
-```json
-{
-  "mcpServers": {
-    "kobana-charge": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "https://mcp.kobana.com.br/charge/mcp",
-        "--header",
-        "Authorization: Bearer your_sandbox_token",
-        "--header",
-        "X-Kobana-Api-Url: https://api-sandbox.kobana.com.br"
-      ]
-    }
-  }
-}
-```
-
-### Local Testing
-
-```bash
-cd vercel-mcp
-npm install
-npm run build
-PORT=3333 KOBANA_ACCESS_TOKEN=your_token npm start
-```
-
-See [vercel-mcp/README.md](./vercel-mcp/README.md) for full documentation.
 
 ## Development
 

@@ -21,14 +21,11 @@ cd mcp-financial && npm run dev
 # Run stdio MCP server (for Claude Desktop)
 KOBANA_ACCESS_TOKEN=token npx kobana-mcp-financial
 
-# Run HTTP server (for Vercel/hosted deployment)
+# Run HTTP server (single-namespace, local debugging)
 cd mcp-financial && npm run start:http
 
 # Clean build artifacts
 cd mcp-financial && npm run clean
-
-# Build and run Vercel unified server
-cd vercel-mcp && npm run build && npm run start
 ```
 
 ## Architecture
@@ -73,13 +70,8 @@ Each server implements `zodToJsonSchema()` in `server.ts` to convert Zod schemas
 ### Transport Modes
 
 1. **Stdio** (default): For Claude Desktop integration via `index.ts`
-2. **HTTP/SSE**: For Vercel deployment via `http-server.ts` with endpoints `/sse`, `/messages`, `/health`
-
-### Vercel Unified Server
-
-`vercel-mcp/` aggregates all 8 servers with path-based routing:
-- Paths: `/{namespace}/mcp` (e.g., `/financial/mcp`)
-- Imports tools/clients dynamically from each package
+2. **HTTP/SSE**: Per-package single-namespace HTTP server via `http-server.ts`
+   (`/sse`, `/messages`, `/health`) — useful for local debugging.
 
 ## Configuration
 

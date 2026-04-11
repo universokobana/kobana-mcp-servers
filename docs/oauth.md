@@ -162,13 +162,7 @@ export KOBANA_APP_URL=https://app-sandbox.kobana.com.br
 ### Step 4: Deploy
 
 ```bash
-# Deploy to Vercel
 vercel --prod
-
-# Or run locally
-cd vercel-mcp
-npm run build
-PORT=3000 npm start
 ```
 
 ### Step 5: Verify OAuth Metadata
@@ -231,19 +225,11 @@ If OAuth is not configured, you can still use token-based authentication:
 - **HTTPS**: Required for all endpoints (except localhost)
 - **Redirect URI Validation**: Only registered URIs are accepted
 
-## Implementation Files
+## Implementation
 
-```
-vercel-mcp/src/oauth/
-├── config.ts      # OAuth configuration
-├── sessions.ts    # Session management (pending auths, codes, tokens)
-├── pkce.ts        # PKCE validation (S256)
-├── metadata.ts    # /.well-known/oauth-authorization-server
-├── authorize.ts   # /authorize endpoint
-├── callback.ts    # /oauth/callback (Kobana callback)
-├── token.ts       # /token endpoint
-└── index.ts       # Exports
-```
+The OAuth flow is implemented as a single Vercel function that hosts
+metadata, authorization, callback, token exchange, and Dynamic Client
+Registration alongside the per-namespace MCP transports.
 
 ## Metadata Response
 
