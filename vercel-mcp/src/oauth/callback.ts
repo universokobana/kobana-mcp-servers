@@ -35,24 +35,28 @@ export async function handleKobanaCallback(
   // Handle error from Kobana
   if (error) {
     console.error('Kobana OAuth error:', error, errorDescription);
-    sendErrorPage(res, error, errorDescription || 'Authorization failed');
+    sendErrorPage(res, error, errorDescription || 'Autorização negada pela Kobana.');
     return;
   }
 
   // Validate state and get pending auth
   if (!kobanaState) {
-    sendErrorPage(res, 'invalid_request', 'Missing state parameter');
+    sendErrorPage(res, 'invalid_request', 'Parâmetro "state" ausente na resposta.');
     return;
   }
 
   const pendingAuth = getPendingAuth(kobanaState);
   if (!pendingAuth) {
-    sendErrorPage(res, 'invalid_request', 'Invalid or expired state');
+    sendErrorPage(
+      res,
+      'invalid_request',
+      'State inválido ou expirado. Inicie uma nova tentativa de conexão a partir do seu cliente MCP.'
+    );
     return;
   }
 
   if (!kobanaCode) {
-    sendErrorPage(res, 'invalid_request', 'Missing authorization code');
+    sendErrorPage(res, 'invalid_request', 'Código de autorização ausente na resposta.');
     return;
   }
 
@@ -71,20 +75,20 @@ export async function handleKobanaCallback(
       pendingAuth.redirectUri
     );
 
-    // Redirect to Claude's callback with the MCP code
+    // Build the final client redirect URL (e.g., Claude Desktop's callback)
+    // with the MCP code attached. The browser must navigate here so the MCP
+    // client can exchange the code at /token. We render a brief success
+    // page first so the user gets visual confirmation before being bounced.
     const redirectUrl = new URL(pendingAuth.redirectUri);
     redirectUrl.searchParams.set('code', mcpCode);
     redirectUrl.searchParams.set('state', pendingAuth.state);
 
-    res.writeHead(302, {
-      Location: redirectUrl.toString(),
-      'Cache-Control': 'no-store',
-    });
-    res.end();
+    sendSuccessPage(res, redirectUrl.toString());
+    return;
   } catch (err) {
     console.error('Error exchanging Kobana code:', err);
     deletePendingAuth(kobanaState);
-    sendErrorPage(res, 'server_error', 'Failed to complete authorization');
+    sendErrorPage(res, 'server_error', 'Falha ao completar a autorização com a Kobana.');
   }
 }
 
@@ -118,42 +122,124 @@ async function exchangeKobanaCode(code: string): Promise<KobanaTokenResponse> {
   return (await response.json()) as KobanaTokenResponse;
 }
 
-function sendErrorPage(res: ServerResponse, error: string, description: string): void {
-  const html = `
-<!DOCTYPE html>
-<html lang="en">
+function sendSuccessPage(res: ServerResponse, redirectUrl: string): void {
+  // Auto-redirect after a brief moment so the user sees "success" before
+  // the browser bounces to the MCP client (Claude Desktop) callback.
+  // We include both meta refresh (no-JS fallback) and JS redirect, plus a
+  // manual link in case both are blocked.
+  const safeRedirect = escapeHtml(redirectUrl);
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Authorization Error - Kobana MCP</title>
+  <meta http-equiv="refresh" content="2;url=${safeRedirect}">
+  <title>Autenticado com sucesso — Kobana MCP</title>
   <style>
+    :root { color-scheme: dark; }
+    html, body { background: #0f172a; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      max-width: 600px;
-      margin: 100px auto;
-      padding: 20px;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 96px 24px 32px;
       text-align: center;
+      line-height: 1.5;
+      color: #ffffff;
     }
-    h1 { color: #e53e3e; }
-    p { color: #4a5568; margin: 20px 0; }
-    code {
-      background: #f7fafc;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 14px;
+    .badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #10b981;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 24px;
     }
+    h1 { color: #ffffff; margin: 0 0 12px; font-size: 24px; }
+    p { color: #ffffff; margin: 12px 0; }
+    .muted { color: #ffffff; opacity: 0.7; font-size: 13px; }
   </style>
 </head>
 <body>
-  <h1>Authorization Failed</h1>
-  <p>${escapeHtml(description)}</p>
-  <p>Error code: <code>${escapeHtml(error)}</code></p>
-  <p>Please close this window and try again.</p>
+  <div class="badge">✓</div>
+  <h1>Autenticado com sucesso</h1>
+  <p>Conexão com a Kobana estabelecida. Você será redirecionado de volta ao seu cliente MCP em instantes.</p>
+  <p class="muted">Pode fechar esta janela depois que o cliente MCP confirmar a conexão.</p>
+  <script>
+    // Redirect a touch faster than the meta refresh so users with JS
+    // enabled get a snappier experience.
+    setTimeout(function () { window.location.replace(${JSON.stringify(redirectUrl)}); }, 1200);
+  </script>
 </body>
 </html>
 `;
 
-  res.writeHead(400, { 'Content-Type': 'text/html' });
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(html);
+}
+
+function sendErrorPage(res: ServerResponse, error: string, description: string): void {
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Falha na autorização — Kobana MCP</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { background: #0f172a; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 96px 24px 32px;
+      text-align: center;
+      line-height: 1.5;
+      color: #ffffff;
+    }
+    .badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 24px;
+    }
+    h1 { color: #ffffff; margin: 0 0 12px; font-size: 24px; }
+    p { color: #ffffff; margin: 12px 0; }
+    .muted { color: #ffffff; opacity: 0.7; font-size: 13px; }
+    code {
+      background: #1e293b;
+      color: #ffffff;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="badge">✕</div>
+  <h1>Falha na autorização</h1>
+  <p>${escapeHtml(description)}</p>
+  <p class="muted">Código do erro: <code>${escapeHtml(error)}</code></p>
+  <p class="muted">Você pode fechar esta janela e tentar novamente a partir do seu cliente MCP.</p>
+</body>
+</html>
+`;
+
+  res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);
 }
 
