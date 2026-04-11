@@ -24,6 +24,7 @@ sessions.
 | Data      | `/data/mcp`      | Bank billet queries | Lookups |
 | EDI       | `/edi/mcp`       | EDI boxes | File exchange |
 | Financial | `/financial/mcp` | Accounts, balances, statements, transactions | Reconciliation |
+| Mailbox   | `/mailbox/mcp`   | Mailbox entries, files, email/S3/SFTP/WhatsApp/Syncthing channels | Inbound files |
 | Payment   | `/payment/mcp`   | Bank billets, Pix, DARFs, taxes, utilities, batches | Payables |
 | Transfer  | `/transfer/mcp`  | Pix, TED, internal transfers, batches | Money movement |
 
@@ -58,6 +59,7 @@ scoped per connector.
 | `charge`    | `login` `charge.pix_accounts` `charge.pix` `charge.automatic_pix.pix` `charge.automatic_pix.recurrences` `charge.automatic_pix.requests` `charge.payments` |
 | `data`      | `login` `data.bank_billet_queries` |
 | `edi`       | `login` `integration.edi_boxes` |
+| `mailbox`   | `login` `mailbox.entries` `mailbox.files` |
 | `financial` | `login` `financial.providers` `financial.accounts` `financial.balances` `financial.statement_transactions` |
 | `payment`   | `login` `payment.payments` `payment.bank_billets` `payment.pix` `payment.darfs` `payment.taxes` `payment.utilities` `payment.batches` |
 | `transfer`  | `login` `transfer.transfers` `transfer.pix` `transfer.ted` `transfer.internal` `transfer.batches` |

@@ -11,6 +11,7 @@ import { allTools as chargeTools } from '../mcp-charge/dist/tools/index.js';
 import { allTools as dataTools } from '../mcp-data/dist/tools/index.js';
 import { allTools as ediTools } from '../mcp-edi/dist/tools/index.js';
 import { allTools as financialTools } from '../mcp-financial/dist/tools/index.js';
+import { allTools as mailboxTools } from '../mcp-mailbox/dist/tools/index.js';
 import { allTools as paymentTools } from '../mcp-payment/dist/tools/index.js';
 import { allTools as transferTools } from '../mcp-transfer/dist/tools/index.js';
 
@@ -20,6 +21,7 @@ import { KobanaApiClient as ChargeApiClient } from '../mcp-charge/dist/api/clien
 import { KobanaApiClient as DataApiClient } from '../mcp-data/dist/api/client.js';
 import { KobanaApiClient as EdiApiClient } from '../mcp-edi/dist/api/client.js';
 import { KobanaApiClient as FinancialApiClient } from '../mcp-financial/dist/api/client.js';
+import { KobanaApiClient as MailboxApiClient } from '../mcp-mailbox/dist/api/client.js';
 import { KobanaApiClient as PaymentApiClient } from '../mcp-payment/dist/api/client.js';
 import { KobanaApiClient as TransferApiClient } from '../mcp-transfer/dist/api/client.js';
 
@@ -47,6 +49,7 @@ const namespaces: NamespaceConfig[] = [
   { name: 'data', path: '/data', description: 'Bank accounts validation' },
   { name: 'edi', path: '/edi', description: 'EDI file processing' },
   { name: 'financial', path: '/financial', description: 'Transactions, balances, statements' },
+  { name: 'mailbox', path: '/mailbox', description: 'Mailbox entries, files, email/S3/SFTP/WhatsApp/Syncthing channels' },
   { name: 'payment', path: '/payment', description: 'Payments, batches, payees' },
   { name: 'transfer', path: '/transfer', description: 'Wire transfers and Pix transfers' },
 ];
@@ -85,6 +88,11 @@ const NAMESPACE_SCOPES: Record<string, string[]> = {
   edi: [
     'login',
     'integration.edi_boxes',
+  ],
+  mailbox: [
+    'login',
+    'mailbox.entries',
+    'mailbox.files',
   ],
   financial: [
     'login',
@@ -729,6 +737,7 @@ function getToolsForNamespace(namespace: string): ToolDefinition[] {
     case 'data': return dataTools as ToolDefinition[];
     case 'edi': return ediTools as ToolDefinition[];
     case 'financial': return financialTools as ToolDefinition[];
+    case 'mailbox': return mailboxTools as ToolDefinition[];
     case 'payment': return paymentTools as ToolDefinition[];
     case 'transfer': return transferTools as ToolDefinition[];
     default: return [];
@@ -742,6 +751,7 @@ function getApiClientForNamespace(namespace: string, config: Config): unknown {
     case 'data': return new DataApiClient(config);
     case 'edi': return new EdiApiClient(config);
     case 'financial': return new FinancialApiClient(config);
+    case 'mailbox': return new MailboxApiClient(config);
     case 'payment': return new PaymentApiClient(config);
     case 'transfer': return new TransferApiClient(config);
     default: return null;

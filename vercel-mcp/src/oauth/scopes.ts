@@ -30,6 +30,11 @@ export const NAMESPACE_SCOPES: Record<string, string[]> = {
     'login',
     'integration.edi_boxes',
   ],
+  mailbox: [
+    'login',
+    'mailbox.entries',
+    'mailbox.files',
+  ],
   financial: [
     'login',
     'financial.providers',
