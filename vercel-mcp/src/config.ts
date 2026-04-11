@@ -1,3 +1,5 @@
+import { getKobanaApiBaseUrl } from './oauth/config.js';
+
 export interface Config {
   apiUrl: string;
   accessToken: string;
@@ -11,7 +13,7 @@ export function getConfigFromEnv(): Config {
   }
 
   return {
-    apiUrl: process.env.KOBANA_API_URL || 'https://api.kobana.com.br',
+    apiUrl: getKobanaApiBaseUrl(),
     accessToken,
   };
 }
@@ -20,7 +22,7 @@ export function getConfigFromHeader(authHeader: string | null, apiUrlHeader: str
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     return {
-      apiUrl: apiUrlHeader || 'https://api.kobana.com.br',
+      apiUrl: apiUrlHeader || getKobanaApiBaseUrl(),
       accessToken: token,
     };
   }

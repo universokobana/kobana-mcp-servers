@@ -55,6 +55,85 @@ function getNamespaceByPath(pathname: string): NamespaceConfig | undefined {
   return namespaces.find(ns => pathname === ns.path || pathname.startsWith(ns.path + '/'));
 }
 
+// Kobana OAuth scopes required by each MCP namespace.
+//
+// The `login` scope is included everywhere — it is the basic authentication
+// scope required by the Kobana OAuth server for any user-bound token.
+// The remaining scopes match the Kobana scope hierarchy (Doorkeeper i18n)
+// and cover exactly the resources each namespace's tools touch.
+const NAMESPACE_SCOPES: Record<string, string[]> = {
+  admin: [
+    'login',
+    'admin.subaccounts',
+    'admin.users',
+    'integration.certificates',
+    'integration.connections',
+  ],
+  charge: [
+    'login',
+    'charge.pix_accounts',
+    'charge.pix',
+    'charge.automatic_pix.pix',
+    'charge.automatic_pix.recurrences',
+    'charge.automatic_pix.requests',
+    'charge.payments',
+  ],
+  data: [
+    'login',
+    'data.bank_billet_queries',
+  ],
+  edi: [
+    'login',
+    'integration.edi_boxes',
+  ],
+  financial: [
+    'login',
+    'financial.providers',
+    'financial.accounts',
+    'financial.balances',
+    'financial.statement_transactions',
+  ],
+  payment: [
+    'login',
+    'payment.payments',
+    'payment.bank_billets',
+    'payment.pix',
+    'payment.darfs',
+    'payment.taxes',
+    'payment.utilities',
+    'payment.batches',
+  ],
+  transfer: [
+    'login',
+    'transfer.transfers',
+    'transfer.pix',
+    'transfer.ted',
+    'transfer.internal',
+    'transfer.batches',
+  ],
+};
+
+function getScopesForNamespace(namespace: string): string[] {
+  return NAMESPACE_SCOPES[namespace] || ['login'];
+}
+
+// Extract a namespace name from a resource URL or pathname.
+// Accepts forms like:
+//   "https://mcp.kobana.com.br/financial/mcp" → "financial"
+//   "/financial/mcp"                          → "financial"
+//   "/financial"                              → "financial"
+function extractNamespaceFromResource(resource: string | undefined): string | undefined {
+  if (!resource) return undefined;
+  let pathname: string;
+  try {
+    pathname = new URL(resource).pathname;
+  } catch {
+    pathname = resource.startsWith('/') ? resource : `/${resource}`;
+  }
+  const ns = getNamespaceByPath(pathname);
+  return ns?.name;
+}
+
 // ============================================================================
 // OAuth 2.1 Implementation
 // ============================================================================
@@ -220,6 +299,19 @@ function isOAuthConfigured(): boolean {
   return !!(process.env.KOBANA_OAUTH_CLIENT_ID && process.env.KOBANA_OAUTH_CLIENT_SECRET);
 }
 
+// Default Kobana base URLs. Override with KOBANA_API_BASE_URL /
+// KOBANA_APP_BASE_URL to point at sandbox or any other environment.
+const DEFAULT_KOBANA_API_BASE_URL = 'https://api.kobana.com.br';
+const DEFAULT_KOBANA_APP_BASE_URL = 'https://app.kobana.com.br';
+
+function getKobanaApiBaseUrl(): string {
+  return process.env.KOBANA_API_BASE_URL || DEFAULT_KOBANA_API_BASE_URL;
+}
+
+function getKobanaAppBaseUrl(): string {
+  return process.env.KOBANA_APP_BASE_URL || DEFAULT_KOBANA_APP_BASE_URL;
+}
+
 function getOAuthConfig(): OAuthConfig {
   const clientId = process.env.KOBANA_OAUTH_CLIENT_ID;
   const clientSecret = process.env.KOBANA_OAUTH_CLIENT_SECRET;
@@ -231,7 +323,7 @@ function getOAuthConfig(): OAuthConfig {
   return {
     clientId,
     clientSecret,
-    kobanaAppUrl: process.env.KOBANA_APP_URL || 'https://app.kobana.com.br',
+    kobanaAppUrl: getKobanaAppBaseUrl(),
     mcpServerUrl: process.env.MCP_SERVER_URL || 'https://mcp.kobana.com.br',
   };
 }
@@ -295,7 +387,7 @@ async function getConfig(authHeader: string | null, apiUrlHeader: string | null)
 
   return {
     accessToken,
-    apiUrl: apiUrlHeader || process.env.KOBANA_API_URL || 'https://api.kobana.com.br',
+    apiUrl: apiUrlHeader || getKobanaApiBaseUrl(),
   };
 }
 
@@ -307,12 +399,17 @@ function handleOAuthMetadata(res: VercelResponse): void {
   const config = getOAuthConfig();
   const baseUrl = config.mcpServerUrl;
 
+  // Union of all scopes across all namespaces, deduplicated.
+  const allScopes = Array.from(
+    new Set(Object.values(NAMESPACE_SCOPES).flat())
+  );
+
   res.status(200).json({
     issuer: baseUrl,
     authorization_endpoint: `${baseUrl}/authorize`,
     token_endpoint: `${baseUrl}/token`,
     registration_endpoint: `${baseUrl}/register`,
-    scopes_supported: ['login'],
+    scopes_supported: allScopes,
     response_types_supported: ['code'],
     response_modes_supported: ['query'],
     grant_types_supported: ['authorization_code'],
@@ -323,14 +420,35 @@ function handleOAuthMetadata(res: VercelResponse): void {
 }
 
 // RFC 9728 - OAuth 2.0 Protected Resource Metadata
-function handleProtectedResourceMetadata(res: VercelResponse): void {
+//
+// Per RFC 9728 §3.1, when a protected resource has a path component, clients
+// construct the metadata URL by inserting `/.well-known/oauth-protected-resource`
+// between the resource origin and the resource path. We accept both:
+//   /.well-known/oauth-protected-resource          → resource = baseUrl
+//   /.well-known/oauth-protected-resource/foo/mcp  → resource = baseUrl + /foo/mcp
+function handleProtectedResourceMetadata(req: VercelRequest, res: VercelResponse): void {
   const config = getOAuthConfig();
   const baseUrl = config.mcpServerUrl;
 
+  const pathname = req.url?.split('?')[0] || '';
+  const wellKnownPrefix = '/.well-known/oauth-protected-resource';
+  const subPath = pathname.startsWith(wellKnownPrefix)
+    ? pathname.slice(wellKnownPrefix.length)
+    : '';
+  const resource = subPath ? `${baseUrl}${subPath}` : baseUrl;
+
+  // Per-namespace scopes_supported. If the request matches a known namespace
+  // (e.g. /.well-known/oauth-protected-resource/financial/mcp), return only
+  // that namespace's scopes. Otherwise return the union as a fallback.
+  const namespace = extractNamespaceFromResource(subPath);
+  const scopesSupported = namespace
+    ? getScopesForNamespace(namespace)
+    : Array.from(new Set(Object.values(NAMESPACE_SCOPES).flat()));
+
   res.status(200).json({
-    resource: baseUrl,
+    resource,
     authorization_servers: [baseUrl],
-    scopes_supported: ['login'],
+    scopes_supported: scopesSupported,
     bearer_methods_supported: ['header'],
     resource_documentation: 'https://developers.kobana.com.br',
   });
@@ -392,6 +510,8 @@ async function handleOAuthAuthorize(req: VercelRequest, res: VercelResponse): Pr
   const codeChallenge = req.query.code_challenge as string;
   const codeChallengeMethod = req.query.code_challenge_method as string;
   const state = req.query.state as string;
+  const resourceParam = req.query.resource as string | undefined;
+  const scopeParam = req.query.scope as string | undefined;
 
   // Validate required parameters
   if (responseType !== 'code') {
@@ -414,6 +534,22 @@ async function handleOAuthAuthorize(req: VercelRequest, res: VercelResponse): Pr
     return;
   }
 
+  // Determine which namespace this authorization is for, in priority order:
+  //   1. RFC 8707 `resource` parameter (Claude Desktop sends this)
+  //   2. Any namespace mentioned in the client's `scope` parameter
+  //   3. Fallback: union of all scopes (rare, only if neither is sent)
+  let namespace = extractNamespaceFromResource(resourceParam);
+  if (!namespace && scopeParam) {
+    const requested = scopeParam.split(/\s+/).filter(Boolean);
+    namespace = namespaces.find(ns =>
+      requested.some(s => getScopesForNamespace(ns.name).includes(s))
+    )?.name;
+  }
+
+  const kobanaScopes = namespace
+    ? getScopesForNamespace(namespace)
+    : Array.from(new Set(Object.values(NAMESPACE_SCOPES).flat()));
+
   // Generate kobana state and store pending auth in Redis
   const kobanaState = generateState();
 
@@ -427,12 +563,13 @@ async function handleOAuthAuthorize(req: VercelRequest, res: VercelResponse): Pr
     createdAt: Date.now(),
   });
 
-  // Redirect to Kobana OAuth
+  // Redirect to Kobana OAuth, requesting the namespace-specific scopes.
   const kobanaAuthUrl = new URL(`${config.kobanaAppUrl}/oauth/authorize`);
   kobanaAuthUrl.searchParams.set('client_id', config.clientId);
   kobanaAuthUrl.searchParams.set('redirect_uri', `${config.mcpServerUrl}/oauth/callback`);
   kobanaAuthUrl.searchParams.set('response_type', 'code');
   kobanaAuthUrl.searchParams.set('state', kobanaState);
+  kobanaAuthUrl.searchParams.set('scope', kobanaScopes.join(' '));
 
   res.redirect(302, kobanaAuthUrl.toString());
 }
@@ -649,8 +786,14 @@ function createMcpServer(namespace: string, config: Config): McpServer {
 function setCorsHeaders(res: VercelResponse): void {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Kobana-Api-Url, mcp-session-id, mcp-protocol-version');
-  res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id, mcp-protocol-version');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Kobana-Api-Url, mcp-session-id, mcp-protocol-version, last-event-id'
+  );
+  res.setHeader(
+    'Access-Control-Expose-Headers',
+    'mcp-session-id, mcp-protocol-version, WWW-Authenticate'
+  );
 }
 
 async function handleMcp(req: VercelRequest, res: VercelResponse, ns: NamespaceConfig): Promise<void> {
@@ -664,9 +807,13 @@ async function handleMcp(req: VercelRequest, res: VercelResponse, ns: NamespaceC
     // If OAuth is configured, return 401 with WWW-Authenticate to trigger OAuth flow
     if (isOAuthConfigured()) {
       const oauthConfig = getOAuthConfig();
-      const prmUrl = `${oauthConfig.mcpServerUrl}/.well-known/oauth-protected-resource`;
-      // MCP spec requires resource_metadata in WWW-Authenticate header
-      res.setHeader('WWW-Authenticate', `Bearer resource_metadata="${prmUrl}"`);
+      // RFC 9728 §3.1: per-resource metadata URL for this specific namespace
+      const prmUrl = `${oauthConfig.mcpServerUrl}/.well-known/oauth-protected-resource${ns.path}/mcp`;
+      const resourceUrl = `${oauthConfig.mcpServerUrl}${ns.path}/mcp`;
+      res.setHeader(
+        'WWW-Authenticate',
+        `Bearer realm="${oauthConfig.mcpServerUrl}", resource="${resourceUrl}", resource_metadata="${prmUrl}"`
+      );
       res.status(401).json({ error: 'unauthorized', error_description: 'Authentication required' });
     } else {
       res.status(401).json({ error: 'Missing or invalid authorization' });
@@ -772,14 +919,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // OAuth endpoints (only if configured)
     if (isOAuthConfigured()) {
-      if (pathname === '/.well-known/oauth-authorization-server' && req.method === 'GET') {
+      // Some clients append the resource path when discovering AS metadata.
+      if (
+        req.method === 'GET' &&
+        (pathname === '/.well-known/oauth-authorization-server' ||
+          pathname.startsWith('/.well-known/oauth-authorization-server/'))
+      ) {
         handleOAuthMetadata(res);
         return;
       }
 
-      // RFC 9728 - Protected Resource Metadata
-      if (pathname === '/.well-known/oauth-protected-resource' && req.method === 'GET') {
-        handleProtectedResourceMetadata(res);
+      // RFC 9728 - Protected Resource Metadata.
+      // Match the bare well-known and any resource sub-path
+      // (e.g. /.well-known/oauth-protected-resource/financial/mcp).
+      if (
+        req.method === 'GET' &&
+        (pathname === '/.well-known/oauth-protected-resource' ||
+          pathname.startsWith('/.well-known/oauth-protected-resource/'))
+      ) {
+        handleProtectedResourceMetadata(req, res);
         return;
       }
 

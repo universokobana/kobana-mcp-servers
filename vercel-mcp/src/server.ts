@@ -1,25 +1,35 @@
 #!/usr/bin/env node
 
+// Load environment variables from .env in development.
+// dotenv is a no-op in production environments where vars are already set
+// (Vercel, systemd, container orchestrators, etc.) — it never overwrites
+// existing process.env values.
+import 'dotenv/config';
+
 import { createServer as createHttpServer, IncomingMessage, ServerResponse } from 'http';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { getConfig, getConfigFromEnv, Config } from './config.js';
+import { getConfigFromEnv, Config } from './config.js';
 import { namespaces, getNamespaceByPath, NamespaceConfig } from './namespaces.js';
 
 // OAuth imports
 import {
   isOAuthConfigured,
-  handleMetadata,
+  handleAuthorizationServerMetadata,
+  handleProtectedResourceMetadata,
   handleAuthorize,
   handleKobanaCallback,
   handleToken,
+  handleRegister,
   getKobanaTokenFromMcpToken,
+  getOAuthConfig,
 } from './oauth/index.js';
+import { getKobanaApiBaseUrl } from './oauth/config.js';
 
 // Import tools from each MCP package
 import { allTools as adminTools } from '../../mcp-admin/dist/tools/index.js';
@@ -49,18 +59,6 @@ interface ToolDefinition {
   description: string;
   inputSchema: z.ZodType;
   handler: (client: unknown, args: unknown) => Promise<unknown>;
-}
-
-interface ActiveTransport {
-  transport: SSEServerTransport;
-  response: ServerResponse;
-  namespace: string;
-}
-
-const activeTransports = new Map<string, ActiveTransport>();
-
-function generateSessionId(): string {
-  return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 function getToolsForNamespace(namespace: string): ToolDefinition[] {
@@ -262,9 +260,12 @@ function createMcpServer(namespace: string, config: Config): Server {
 
 function setCorsHeaders(res: ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Kobana-Api-Url');
-  res.setHeader('Access-Control-Expose-Headers', 'X-Session-Id');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Kobana-Api-Url, MCP-Protocol-Version, Mcp-Session-Id, Last-Event-ID'
+  );
+  res.setHeader('Access-Control-Expose-Headers', 'Mcp-Session-Id, WWW-Authenticate');
 }
 
 /**
@@ -272,9 +273,9 @@ function setCorsHeaders(res: ServerResponse): void {
  * Supports:
  * 1. Direct Kobana token via Authorization header
  * 2. MCP OAuth token (prefixed with "mcp_") which resolves to Kobana token
- * 3. Environment variable fallback
+ * 3. Environment variable fallback (only when OAuth is not configured)
  */
-function resolveConfig(req: IncomingMessage): Config {
+function resolveConfig(req: IncomingMessage): Config | null {
   const authHeader = req.headers.authorization || null;
   const apiUrlHeader = (req.headers['x-kobana-api-url'] as string) || null;
 
@@ -286,117 +287,134 @@ function resolveConfig(req: IncomingMessage): Config {
     if (token.startsWith('mcp_')) {
       const kobanaToken = getKobanaTokenFromMcpToken(token);
       if (!kobanaToken) {
-        throw new Error('Invalid or expired MCP token');
+        return null;
       }
       return {
-        apiUrl: apiUrlHeader || process.env.KOBANA_API_URL || 'https://api.kobana.com.br',
+        apiUrl: apiUrlHeader || getKobanaApiBaseUrl(),
         accessToken: kobanaToken,
       };
     }
 
     // Direct Kobana token
     return {
-      apiUrl: apiUrlHeader || 'https://api.kobana.com.br',
+      apiUrl: apiUrlHeader || getKobanaApiBaseUrl(),
       accessToken: token,
     };
   }
 
-  // Fallback to environment config
-  return getConfigFromEnv();
+  // Fallback to environment config (dev / single-tenant)
+  if (!isOAuthConfigured()) {
+    try {
+      return getConfigFromEnv();
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }
 
-async function handleSSE(req: IncomingMessage, res: ServerResponse, ns: NamespaceConfig): Promise<void> {
-  let config: Config;
+function getServerBaseUrl(req: IncomingMessage): string {
+  if (isOAuthConfigured()) {
+    return getOAuthConfig().mcpServerUrl;
+  }
+  const proto = (req.headers['x-forwarded-proto'] as string) || 'http';
+  const host = req.headers.host || `${HOST}:${PORT}`;
+  return `${proto}://${host}`;
+}
+
+function sendUnauthorized(req: IncomingMessage, res: ServerResponse, ns: NamespaceConfig): void {
+  const baseUrl = getServerBaseUrl(req);
+  const resourceMetadataUrl = `${baseUrl}/.well-known/oauth-protected-resource${ns.path}/mcp`;
+
+  res.writeHead(401, {
+    'Content-Type': 'application/json',
+    'WWW-Authenticate': `Bearer realm="${baseUrl}", resource_metadata="${resourceMetadataUrl}"`,
+  });
+  res.end(
+    JSON.stringify({
+      error: 'unauthorized',
+      error_description: 'Authentication required. Use the OAuth flow advertised in WWW-Authenticate.',
+    })
+  );
+}
+
+async function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  let raw = '';
+  for await (const chunk of req) {
+    raw += chunk;
+  }
+  if (!raw) return undefined;
   try {
-    config = resolveConfig(req);
+    return JSON.parse(raw);
   } catch {
-    // If OAuth is configured, return 401 to trigger OAuth flow
-    if (isOAuthConfigured()) {
-      res.writeHead(401, {
-        'Content-Type': 'application/json',
-        'WWW-Authenticate': 'Bearer',
-      });
-      res.end(JSON.stringify({ error: 'unauthorized', error_description: 'Authentication required' }));
-    } else {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing or invalid authorization' }));
-    }
+    return undefined;
+  }
+}
+
+async function handleMcp(
+  req: IncomingMessage,
+  res: ServerResponse,
+  ns: NamespaceConfig
+): Promise<void> {
+  const config = resolveConfig(req);
+  if (!config) {
+    sendUnauthorized(req, res, ns);
     return;
   }
 
-  const sessionId = generateSessionId();
-  res.setHeader('X-Session-Id', sessionId);
-
+  // Stateless mode: spin up a fresh transport+server for each request.
+  // This works well for serverless deployments (Vercel, Cloudflare, etc.).
   const server = createMcpServer(ns.name, config);
-  const transport = new SSEServerTransport(`${ns.path}/messages`, res);
-
-  activeTransports.set(sessionId, { transport, response: res, namespace: ns.name });
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
 
   res.on('close', () => {
-    activeTransports.delete(sessionId);
+    transport.close().catch(() => {});
+    server.close().catch(() => {});
   });
 
   await server.connect(transport);
-}
 
-async function handleMessage(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const url = new URL(req.url || '/', `http://${req.headers.host}`);
-  const sessionId = url.searchParams.get('sessionId');
-
-  if (!sessionId) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Missing sessionId parameter' }));
-    return;
+  let parsedBody: unknown = undefined;
+  if (req.method === 'POST') {
+    parsedBody = await readJsonBody(req);
   }
 
-  const active = activeTransports.get(sessionId);
-  if (!active) {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Session not found' }));
-    return;
-  }
-
-  let body = '';
-  for await (const chunk of req) {
-    body += chunk;
-  }
-
-  try {
-    await active.transport.handlePostMessage(req, res, body);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: message }));
-  }
+  await transport.handleRequest(req, res, parsedBody);
 }
 
 function handleHealth(_req: IncomingMessage, res: ServerResponse): void {
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    status: 'healthy',
-    server: 'kobana-mcp-unified',
-    version: '1.0.0',
-    activeSessions: activeTransports.size,
-    namespaces: namespaces.map(ns => ns.name),
-  }));
+  res.end(
+    JSON.stringify({
+      status: 'healthy',
+      server: 'kobana-mcp-unified',
+      version: '1.0.0',
+      transport: 'streamable-http',
+      namespaces: namespaces.map((ns) => ns.name),
+    })
+  );
 }
 
-function handleInfo(_req: IncomingMessage, res: ServerResponse): void {
-  const namespacesInfo = namespaces.map(ns => ({
+function handleInfo(req: IncomingMessage, res: ServerResponse): void {
+  const baseUrl = getServerBaseUrl(req);
+
+  const namespacesInfo = namespaces.map((ns) => ({
     name: ns.name,
     path: ns.path,
     description: ns.description,
-    endpoints: {
-      sse: `${ns.path}/sse`,
-      messages: `${ns.path}/messages`,
-    },
-    tools: getToolsForNamespace(ns.name).map(t => t.name),
+    endpoint: `${baseUrl}${ns.path}/mcp`,
+    tools: getToolsForNamespace(ns.name).map((t) => t.name),
   }));
 
   const response: Record<string, unknown> = {
     name: 'kobana-mcp-unified',
     version: '1.0.0',
     description: 'Unified Kobana MCP Server for all namespaces',
+    transport: 'streamable-http',
     namespaces: namespacesInfo,
     totalTools: namespaces.reduce((sum, ns) => sum + getToolsForNamespace(ns.name).length, 0),
   };
@@ -404,9 +422,11 @@ function handleInfo(_req: IncomingMessage, res: ServerResponse): void {
   if (isOAuthConfigured()) {
     response.oauth = {
       enabled: true,
-      metadata_endpoint: '/.well-known/oauth-authorization-server',
-      authorization_endpoint: '/authorize',
-      token_endpoint: '/token',
+      authorization_server_metadata: `${baseUrl}/.well-known/oauth-authorization-server`,
+      protected_resource_metadata: `${baseUrl}/.well-known/oauth-protected-resource`,
+      registration_endpoint: `${baseUrl}/register`,
+      authorization_endpoint: `${baseUrl}/authorize`,
+      token_endpoint: `${baseUrl}/token`,
     };
   }
 
@@ -414,21 +434,29 @@ function handleInfo(_req: IncomingMessage, res: ServerResponse): void {
   res.end(JSON.stringify(response, null, 2));
 }
 
-function handleNamespaceInfo(ns: NamespaceConfig, _req: IncomingMessage, res: ServerResponse): void {
+function handleNamespaceInfo(
+  ns: NamespaceConfig,
+  req: IncomingMessage,
+  res: ServerResponse
+): void {
+  const baseUrl = getServerBaseUrl(req);
   const tools = getToolsForNamespace(ns.name);
 
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    name: `kobana-mcp-${ns.name}`,
-    version: '1.0.0',
-    description: ns.description,
-    endpoints: {
-      sse: `${ns.path}/sse`,
-      messages: `${ns.path}/messages`,
-      health: '/health',
-    },
-    tools: tools.map(t => t.name),
-  }, null, 2));
+  res.end(
+    JSON.stringify(
+      {
+        name: `kobana-mcp-${ns.name}`,
+        version: '1.0.0',
+        description: ns.description,
+        endpoint: `${baseUrl}${ns.path}/mcp`,
+        transport: 'streamable-http',
+        tools: tools.map((t) => t.name),
+      },
+      null,
+      2
+    )
+  );
 }
 
 const httpServer = createHttpServer(async (req, res) => {
@@ -444,10 +472,28 @@ const httpServer = createHttpServer(async (req, res) => {
   const pathname = url.pathname;
 
   try {
-    // OAuth endpoints (only if configured)
+    // OAuth discovery + endpoints (only if configured)
     if (isOAuthConfigured()) {
-      if (pathname === '/.well-known/oauth-authorization-server' && req.method === 'GET') {
-        handleMetadata(req, res);
+      // RFC 8414 — Authorization Server Metadata.
+      // Some clients append the resource path; we accept both forms.
+      if (
+        req.method === 'GET' &&
+        (pathname === '/.well-known/oauth-authorization-server' ||
+          pathname.startsWith('/.well-known/oauth-authorization-server/'))
+      ) {
+        handleAuthorizationServerMetadata(req, res);
+        return;
+      }
+
+      // RFC 9728 — Protected Resource Metadata.
+      // Clients construct this URL by inserting the resource path between the
+      // well-known prefix and the resource. Match any sub-path.
+      if (
+        req.method === 'GET' &&
+        (pathname === '/.well-known/oauth-protected-resource' ||
+          pathname.startsWith('/.well-known/oauth-protected-resource/'))
+      ) {
+        handleProtectedResourceMetadata(req, res);
         return;
       }
 
@@ -463,6 +509,11 @@ const httpServer = createHttpServer(async (req, res) => {
 
       if (pathname === '/token' && req.method === 'POST') {
         await handleToken(req, res);
+        return;
+      }
+
+      if (pathname === '/register' && req.method === 'POST') {
+        await handleRegister(req, res);
         return;
       }
     }
@@ -488,13 +539,14 @@ const httpServer = createHttpServer(async (req, res) => {
         return;
       }
 
-      if (subpath === '/sse' && req.method === 'GET') {
-        await handleSSE(req, res, ns);
-        return;
-      }
+      if (subpath === '/mcp') {
+        if (req.method === 'POST' || req.method === 'GET' || req.method === 'DELETE') {
+          await handleMcp(req, res, ns);
+          return;
+        }
 
-      if (subpath === '/messages' && req.method === 'POST') {
-        await handleMessage(req, res);
+        res.writeHead(405, { 'Content-Type': 'application/json', Allow: 'GET, POST, DELETE' });
+        res.end(JSON.stringify({ error: 'Method not allowed' }));
         return;
       }
     }
@@ -513,9 +565,9 @@ const httpServer = createHttpServer(async (req, res) => {
 httpServer.listen(PORT, HOST, () => {
   console.log(`Kobana Unified MCP Server running on http://${HOST}:${PORT}`);
   console.log('');
-  console.log('Available namespaces:');
+  console.log('Available namespaces (Streamable HTTP):');
   for (const ns of namespaces) {
-    console.log(`  ${ns.name.padEnd(12)} ${ns.path}/sse`);
+    console.log(`  ${ns.name.padEnd(12)} ${ns.path}/mcp`);
   }
   console.log('');
   console.log('Global endpoints:');
@@ -525,9 +577,11 @@ httpServer.listen(PORT, HOST, () => {
   if (isOAuthConfigured()) {
     console.log('');
     console.log('OAuth 2.1 endpoints:');
-    console.log(`  Metadata:  GET  http://${HOST}:${PORT}/.well-known/oauth-authorization-server`);
-    console.log(`  Authorize: GET  http://${HOST}:${PORT}/authorize`);
-    console.log(`  Token:     POST http://${HOST}:${PORT}/token`);
+    console.log(`  AS metadata: GET  http://${HOST}:${PORT}/.well-known/oauth-authorization-server`);
+    console.log(`  PR metadata: GET  http://${HOST}:${PORT}/.well-known/oauth-protected-resource`);
+    console.log(`  Register:    POST http://${HOST}:${PORT}/register`);
+    console.log(`  Authorize:   GET  http://${HOST}:${PORT}/authorize`);
+    console.log(`  Token:       POST http://${HOST}:${PORT}/token`);
   } else {
     console.log('');
     console.log('OAuth: Not configured (set KOBANA_OAUTH_CLIENT_ID and KOBANA_OAUTH_CLIENT_SECRET to enable)');

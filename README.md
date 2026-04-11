@@ -174,7 +174,7 @@ For sandbox/testing, add `KOBANA_API_URL`:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `KOBANA_ACCESS_TOKEN` | Yes | - | Bearer access token for Kobana API |
-| `KOBANA_API_URL` | No | `https://api.kobana.com.br` | Base URL for Kobana API |
+| `KOBANA_API_BASE_URL` | No | `https://api.kobana.com.br` | Base URL for Kobana API |
 
 ### Additional for OAuth 2.1 (Unified Server)
 
@@ -184,10 +184,12 @@ For sandbox/testing, add `KOBANA_API_URL`:
 | `KOBANA_OAUTH_CLIENT_SECRET` | For OAuth | - | OAuth Client Secret |
 | `REDIS_URL` | For OAuth | - | Redis connection URL for session storage |
 | `APP_ENVIRONMENT` | No | `production` | Environment name (`sandbox` or `production`) |
-| `KOBANA_APP_URL` | No | `https://app.kobana.com.br` | Kobana app URL |
+| `KOBANA_APP_BASE_URL` | No | `https://app.kobana.com.br` | Kobana app base URL (used in OAuth flow) |
 | `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL |
 
 > **Note**: Redis is required for OAuth. Keys are prefixed with environment (e.g., `mcp:sandbox:*`), allowing shared Redis between environments.
+>
+> **Migration note**: `KOBANA_API_URL` and `KOBANA_APP_URL` were renamed to `KOBANA_API_BASE_URL` and `KOBANA_APP_BASE_URL`. The `X-Kobana-Api-Url` request header is unchanged.
 
 ## Streamable HTTP Mode (Hosted)
 
@@ -626,9 +628,10 @@ vercel env add KOBANA_OAUTH_CLIENT_SECRET
 vercel env add REDIS_URL              # Redis connection URL (e.g., redis://user:pass@host:port)
 
 # Optional (with defaults)
-vercel env add APP_ENVIRONMENT       # "production" (default) or "sandbox"
-vercel env add MCP_SERVER_URL        # Your server URL (e.g., https://mcp.kobana.com.br)
-vercel env add KOBANA_APP_URL        # Kobana app URL (default: https://app.kobana.com.br)
+vercel env add APP_ENVIRONMENT          # "production" (default) or "sandbox"
+vercel env add MCP_SERVER_URL           # Your server URL (e.g., https://mcp.kobana.com.br)
+vercel env add KOBANA_API_BASE_URL      # Kobana API base URL (default: https://api.kobana.com.br)
+vercel env add KOBANA_APP_BASE_URL      # Kobana app base URL (default: https://app.kobana.com.br)
 ```
 
 | Variable | Required | Default | Description |
@@ -638,7 +641,8 @@ vercel env add KOBANA_APP_URL        # Kobana app URL (default: https://app.koba
 | `REDIS_URL` | Yes | - | Redis connection URL for session storage |
 | `APP_ENVIRONMENT` | No | `production` | Environment name (`sandbox` or `production`) |
 | `MCP_SERVER_URL` | No | `https://mcp.kobana.com.br` | Your MCP server URL (used in OAuth metadata) |
-| `KOBANA_APP_URL` | No | `https://app.kobana.com.br` | Kobana app URL (use `https://app-sandbox.kobana.com.br` for sandbox) |
+| `KOBANA_API_BASE_URL` | No | `https://api.kobana.com.br` | Kobana API base URL (use `https://api-sandbox.kobana.com.br` for sandbox) |
+| `KOBANA_APP_BASE_URL` | No | `https://app.kobana.com.br` | Kobana app base URL (use `https://app-sandbox.kobana.com.br` for sandbox) |
 
 > **Note**: Redis is required for OAuth session storage. Keys are prefixed with the environment name (e.g., `mcp:sandbox:session:*`), allowing you to share the same Redis instance between production and sandbox.
 
@@ -665,12 +669,21 @@ vercel --prod
 
 **OAuth Endpoints Reference:**
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/.well-known/oauth-authorization-server` | GET | OAuth metadata discovery |
-| `/authorize` | GET | Authorization endpoint |
-| `/token` | POST | Token exchange endpoint |
-| `/oauth/callback` | GET | Kobana OAuth callback |
+| Endpoint | Method | Spec | Description |
+|----------|--------|------|-------------|
+| `/.well-known/oauth-authorization-server` | GET | RFC 8414 | Authorization Server Metadata discovery |
+| `/.well-known/oauth-protected-resource[/{namespace}/mcp]` | GET | RFC 9728 | Protected Resource Metadata (per-namespace) |
+| `/register` | POST | RFC 7591 | Dynamic Client Registration (DCR) |
+| `/authorize` | GET | OAuth 2.1 | Authorization endpoint |
+| `/token` | POST | OAuth 2.1 | Token exchange (PKCE) |
+| `/oauth/callback` | GET | — | Internal Kobana OAuth callback |
+
+The Custom Connector flow works because the server returns `401` with a
+`WWW-Authenticate: Bearer resource_metadata="..."` header on unauthenticated
+requests to any `/{namespace}/mcp` endpoint. Claude Desktop discovers the
+authorization server via RFC 9728, registers itself dynamically via RFC 7591,
+and runs the OAuth 2.1 + PKCE flow against `/authorize` and `/token`. No manual
+Client ID/Secret needs to be entered in the Custom Connector dialog.
 
 For detailed OAuth flow documentation, see [docs/oauth.md](./docs/oauth.md).
 

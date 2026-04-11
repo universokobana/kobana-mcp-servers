@@ -2,6 +2,12 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { getOAuthConfig, isOAuthConfigured } from './config.js';
 import { createPendingAuth, generateState } from './sessions.js';
 import { isValidCodeChallenge } from './pkce.js';
+import {
+  getScopesForNamespace,
+  getAllScopes,
+  extractNamespaceFromResource,
+  namespaceFromRequestedScopes,
+} from './scopes.js';
 
 /**
  * Handles GET /authorize
@@ -36,6 +42,8 @@ export function handleAuthorize(req: IncomingMessage, res: ServerResponse): void
   const codeChallenge = params.get('code_challenge');
   const codeChallengeMethod = params.get('code_challenge_method');
   const state = params.get('state');
+  const resourceParam = params.get('resource') || undefined;
+  const scopeParam = params.get('scope') || undefined;
 
   // Validate response_type
   if (responseType !== 'code') {
@@ -79,6 +87,16 @@ export function handleAuthorize(req: IncomingMessage, res: ServerResponse): void
 
   const config = getOAuthConfig();
 
+  // Determine which namespace this authorization is for, in priority order:
+  //   1. RFC 8707 `resource` parameter (Claude Desktop sends this)
+  //   2. Any namespace mentioned in the client's `scope` parameter
+  //   3. Fallback: union of all scopes (rare, only if neither is sent)
+  const namespace =
+    extractNamespaceFromResource(resourceParam) ||
+    namespaceFromRequestedScopes(scopeParam);
+
+  const kobanaScopes = namespace ? getScopesForNamespace(namespace) : getAllScopes();
+
   // Generate a state for the Kobana OAuth request
   const kobanaState = generateState();
 
@@ -92,12 +110,13 @@ export function handleAuthorize(req: IncomingMessage, res: ServerResponse): void
     kobanaState,
   });
 
-  // Build Kobana OAuth URL
+  // Build Kobana OAuth URL, requesting the namespace-specific scopes.
   const kobanaAuthUrl = new URL(`${config.kobanaAppUrl}/oauth/authorize`);
   kobanaAuthUrl.searchParams.set('client_id', config.clientId);
   kobanaAuthUrl.searchParams.set('redirect_uri', `${config.mcpServerUrl}/oauth/callback`);
   kobanaAuthUrl.searchParams.set('response_type', 'code');
   kobanaAuthUrl.searchParams.set('state', kobanaState);
+  kobanaAuthUrl.searchParams.set('scope', kobanaScopes.join(' '));
 
   // Redirect to Kobana OAuth
   res.writeHead(302, {
