@@ -3,11 +3,14 @@ import { namespaces, getNamespaceByPath } from '../namespaces.js';
 // Kobana OAuth scopes required by each MCP namespace.
 //
 // `login` is the basic Kobana auth scope (required for any user-bound token).
+// `write` grants the ability to execute mutating operations (create/update/
+// delete); every namespace's tools include at least one write-side operation.
 // The remaining scopes match the Kobana Doorkeeper scope hierarchy and cover
 // exactly the resources that each namespace's tools touch.
 export const NAMESPACE_SCOPES: Record<string, string[]> = {
   admin: [
     'login',
+    'write',
     'admin.subaccounts',
     'admin.users',
     'integration.certificates',
@@ -15,6 +18,7 @@ export const NAMESPACE_SCOPES: Record<string, string[]> = {
   ],
   charge: [
     'login',
+    'write',
     'charge.pix_accounts',
     'charge.pix',
     'charge.automatic_pix.pix',
@@ -24,19 +28,23 @@ export const NAMESPACE_SCOPES: Record<string, string[]> = {
   ],
   data: [
     'login',
+    'write',
     'data.bank_billet_queries',
   ],
   edi: [
     'login',
+    'write',
     'integration.edi_boxes',
   ],
   mailbox: [
     'login',
+    'write',
     'mailbox.entries',
     'mailbox.files',
   ],
   financial: [
     'login',
+    'write',
     'financial.providers',
     'financial.accounts',
     'financial.balances',
@@ -44,6 +52,7 @@ export const NAMESPACE_SCOPES: Record<string, string[]> = {
   ],
   payment: [
     'login',
+    'write',
     'payment.payments',
     'payment.bank_billets',
     'payment.pix',
@@ -54,6 +63,7 @@ export const NAMESPACE_SCOPES: Record<string, string[]> = {
   ],
   transfer: [
     'login',
+    'write',
     'transfer.transfers',
     'transfer.pix',
     'transfer.ted',
@@ -63,7 +73,7 @@ export const NAMESPACE_SCOPES: Record<string, string[]> = {
 };
 
 export function getScopesForNamespace(namespace: string): string[] {
-  return NAMESPACE_SCOPES[namespace] || ['login'];
+  return NAMESPACE_SCOPES[namespace] || ['login', 'write'];
 }
 
 export function getAllScopes(): string[] {

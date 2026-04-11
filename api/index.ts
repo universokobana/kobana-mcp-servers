@@ -60,13 +60,16 @@ function getNamespaceByPath(pathname: string): NamespaceConfig | undefined {
 
 // Kobana OAuth scopes required by each MCP namespace.
 //
-// The `login` scope is included everywhere — it is the basic authentication
-// scope required by the Kobana OAuth server for any user-bound token.
-// The remaining scopes match the Kobana scope hierarchy (Doorkeeper i18n)
-// and cover exactly the resources each namespace's tools touch.
+// The `login` scope is the basic authentication scope required by the Kobana
+// OAuth server for any user-bound token. The `write` scope grants the ability
+// to execute mutating operations — every namespace's tools include at least
+// one create/update/delete path. The remaining scopes match the Kobana scope
+// hierarchy (Doorkeeper i18n) and cover exactly the resources each namespace's
+// tools touch.
 const NAMESPACE_SCOPES: Record<string, string[]> = {
   admin: [
     'login',
+    'write',
     'admin.subaccounts',
     'admin.users',
     'integration.certificates',
@@ -74,6 +77,7 @@ const NAMESPACE_SCOPES: Record<string, string[]> = {
   ],
   charge: [
     'login',
+    'write',
     'charge.pix_accounts',
     'charge.pix',
     'charge.automatic_pix.pix',
@@ -83,19 +87,23 @@ const NAMESPACE_SCOPES: Record<string, string[]> = {
   ],
   data: [
     'login',
+    'write',
     'data.bank_billet_queries',
   ],
   edi: [
     'login',
+    'write',
     'integration.edi_boxes',
   ],
   mailbox: [
     'login',
+    'write',
     'mailbox.entries',
     'mailbox.files',
   ],
   financial: [
     'login',
+    'write',
     'financial.providers',
     'financial.accounts',
     'financial.balances',
@@ -103,6 +111,7 @@ const NAMESPACE_SCOPES: Record<string, string[]> = {
   ],
   payment: [
     'login',
+    'write',
     'payment.payments',
     'payment.bank_billets',
     'payment.pix',
@@ -113,6 +122,7 @@ const NAMESPACE_SCOPES: Record<string, string[]> = {
   ],
   transfer: [
     'login',
+    'write',
     'transfer.transfers',
     'transfer.pix',
     'transfer.ted',
@@ -122,7 +132,7 @@ const NAMESPACE_SCOPES: Record<string, string[]> = {
 };
 
 function getScopesForNamespace(namespace: string): string[] {
-  return NAMESPACE_SCOPES[namespace] || ['login'];
+  return NAMESPACE_SCOPES[namespace] || ['login', 'write'];
 }
 
 // Extract a namespace name from a resource URL or pathname.

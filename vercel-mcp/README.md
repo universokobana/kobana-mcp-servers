@@ -53,16 +53,20 @@ client-supplied `scope`) and forwards **only** that namespace's scopes to the
 upstream Kobana OAuth server. Tokens issued by Kobana are therefore minimally
 scoped per connector.
 
+Every namespace requests `login` (basic auth) and `write` (mutating
+operations — create/update/delete) in addition to its resource-specific
+scopes:
+
 | Namespace | Kobana scopes requested |
 |---|---|
-| `admin`     | `login` `admin.subaccounts` `admin.users` `integration.certificates` `integration.connections` |
-| `charge`    | `login` `charge.pix_accounts` `charge.pix` `charge.automatic_pix.pix` `charge.automatic_pix.recurrences` `charge.automatic_pix.requests` `charge.payments` |
-| `data`      | `login` `data.bank_billet_queries` |
-| `edi`       | `login` `integration.edi_boxes` |
-| `mailbox`   | `login` `mailbox.entries` `mailbox.files` |
-| `financial` | `login` `financial.providers` `financial.accounts` `financial.balances` `financial.statement_transactions` |
-| `payment`   | `login` `payment.payments` `payment.bank_billets` `payment.pix` `payment.darfs` `payment.taxes` `payment.utilities` `payment.batches` |
-| `transfer`  | `login` `transfer.transfers` `transfer.pix` `transfer.ted` `transfer.internal` `transfer.batches` |
+| `admin`     | `login` `write` `admin.subaccounts` `admin.users` `integration.certificates` `integration.connections` |
+| `charge`    | `login` `write` `charge.pix_accounts` `charge.pix` `charge.automatic_pix.pix` `charge.automatic_pix.recurrences` `charge.automatic_pix.requests` `charge.payments` |
+| `data`      | `login` `write` `data.bank_billet_queries` |
+| `edi`       | `login` `write` `integration.edi_boxes` |
+| `mailbox`   | `login` `write` `mailbox.entries` `mailbox.files` |
+| `financial` | `login` `write` `financial.providers` `financial.accounts` `financial.balances` `financial.statement_transactions` |
+| `payment`   | `login` `write` `payment.payments` `payment.bank_billets` `payment.pix` `payment.darfs` `payment.taxes` `payment.utilities` `payment.batches` |
+| `transfer`  | `login` `write` `transfer.transfers` `transfer.pix` `transfer.ted` `transfer.internal` `transfer.batches` |
 
 The namespace mapping is hard-coded in `src/oauth/scopes.ts`. To grant or
 restrict scopes for a connector, edit that file.
