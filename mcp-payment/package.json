@@ -1,6 +1,6 @@
 {
   "name": "kobana-mcp-payment",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP Server for Kobana Payment API v2 (Bank billets, Pix, DARF, Taxes, Utilities)",
   "type": "module",
   "main": "dist/index.js",

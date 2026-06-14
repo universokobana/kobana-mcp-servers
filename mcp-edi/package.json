@@ -1,6 +1,6 @@
 {
   "name": "kobana-mcp-edi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP Server for Kobana EDI API v2 (EDI Boxes management)",
   "type": "module",
   "main": "dist/index.js",

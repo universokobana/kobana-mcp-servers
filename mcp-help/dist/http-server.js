@@ -9,6 +9,49 @@ const activeTransports = new Map();
 function generateSessionId() {
     return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
+// Hostname allowlist for X-Kobana-Help-Url. Defaults to *.kobana.com.br.
+// Override with KOBANA_HELP_URL_ALLOWLIST (comma-separated; entries starting
+// with "." match any subdomain).
+function getAllowedHelpUrlHosts() {
+    const raw = process.env.KOBANA_HELP_URL_ALLOWLIST;
+    if (raw) {
+        return raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+    return ['.kobana.com.br'];
+}
+function hostMatchesPattern(hostname, pattern) {
+    if (pattern.startsWith('.')) {
+        const bare = pattern.slice(1);
+        return hostname === bare || hostname.endsWith(pattern);
+    }
+    return hostname === pattern;
+}
+// Validate X-Kobana-Help-Url. Without this guard the header is a SSRF vector:
+// an attacker pointing it at a private IP, cloud metadata endpoint, or any
+// third-party host would have the server fetch from that origin. Returns null
+// on success or an error description on failure.
+function validateHelpUrl(rawUrl) {
+    let url;
+    try {
+        url = new URL(rawUrl);
+    }
+    catch {
+        return 'X-Kobana-Help-Url must be a valid absolute URL';
+    }
+    if (url.protocol.toLowerCase() !== 'https:') {
+        return 'X-Kobana-Help-Url must use https://';
+    }
+    const hostname = url.hostname.toLowerCase();
+    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
+        /^\[?[0-9a-f:]+\]?$/.test(hostname.replace(/^\[|\]$/g, ''))) {
+        return 'X-Kobana-Help-Url must use a hostname, not an IP literal';
+    }
+    const allowlist = getAllowedHelpUrlHosts();
+    if (!allowlist.some(p => hostMatchesPattern(hostname, p))) {
+        return `X-Kobana-Help-Url host "${hostname}" is not in the allowed help hosts list`;
+    }
+    return null;
+}
 function parseConfig(req) {
     const helpUrl = req.headers['x-kobana-help-url'];
     const locale = req.headers['x-kobana-help-locale'];
@@ -25,6 +68,15 @@ function setCorsHeaders(res) {
     res.setHeader('Access-Control-Expose-Headers', 'X-Session-Id');
 }
 async function handleSSE(req, res) {
+    const helpUrlHeader = req.headers['x-kobana-help-url'];
+    if (typeof helpUrlHeader === 'string' && helpUrlHeader.length > 0) {
+        const error = validateHelpUrl(helpUrlHeader);
+        if (error) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'invalid_request', error_description: error }));
+            return;
+        }
+    }
     const config = parseConfig(req);
     const sessionId = generateSessionId();
     res.setHeader('X-Session-Id', sessionId);

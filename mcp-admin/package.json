@@ -1,6 +1,6 @@
 {
   "name": "kobana-mcp-admin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP Server for Kobana Admin API v2 (users, subaccounts, connections, certificates)",
   "type": "module",
   "main": "dist/index.js",

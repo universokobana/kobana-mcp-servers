@@ -7,6 +7,29 @@ breaking configuration changes, and major documentation.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 2026-06-14 — SSRF hardening in `http-server.ts`
+
+### Security
+- **Validate `X-Kobana-Api-Url` before dispatch** in the standalone HTTP
+  servers shipped by `mcp-admin`, `mcp-charge`, `mcp-data`, `mcp-edi`,
+  `mcp-financial`, `mcp-mailbox`, `mcp-payment`, and `mcp-transfer`. The
+  header previously flowed unchecked into the upstream `KobanaApiClient`,
+  letting a caller with a valid Bearer token redirect requests (and the
+  caller's token) to any host. The new guard enforces `https://`, refuses IP
+  literals (loopback, link-local, 169.254.169.254 cloud metadata, private
+  ranges), and matches the hostname against a configurable allowlist (default
+  `*.kobana.com.br`, override via `KOBANA_API_URL_ALLOWLIST`). Invalid
+  values are rejected with `400 invalid_request`.
+- **Validate `X-Kobana-Help-Url`** in `mcp-help` with the same scheme/IP/host
+  allowlist rules (env var `KOBANA_HELP_URL_ALLOWLIST`). The help-center
+  server doesn't forward a Kobana access token, but the header was still a
+  blind-SSRF / metadata-endpoint vector.
+- Affected versions: `kobana-mcp-{admin,charge,data,edi,financial,help,payment,transfer}@<=1.0.0`
+  and `kobana-mcp-mailbox@<=1.0.1`. Fixed in `…@1.0.1` (mailbox `1.0.2`).
+- The deployed Vercel server (`kobana-mcp-remote/api/index.ts`) was already
+  guarded — this only affects operators who run the per-package
+  `npm run start:http` / `bin/kobana-mcp-*-http` entrypoint directly.
+
 ## 2026-04-11 — Claude Desktop Custom Connectors
 
 ### Added
