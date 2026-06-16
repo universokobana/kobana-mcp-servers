@@ -18,6 +18,12 @@ export class KobanaApiClient {
             method,
             headers: requestHeaders,
             body: body ? JSON.stringify(body) : undefined,
+            // Refuse to follow HTTP redirects. Kobana API endpoints don't
+            // redirect under normal operation, and a redirect target could be
+            // an attacker-controlled host that would receive the bearer token
+            // attached to this request. Closes the second hop of the
+            // X-Kobana-Api-Url SSRF chain (WH report 2026-06-15 Finding 1).
+            redirect: 'error',
         });
         if (!response.ok) {
             let errorData;

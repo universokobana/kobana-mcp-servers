@@ -6,3 +6,4 @@ tmp/
 
 # MCP config with sensitive tokens
 .mcp.json
+.vercel
