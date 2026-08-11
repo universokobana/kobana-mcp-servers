@@ -1,0 +1,101 @@
+CLAUDE.md
+  s_449c79ba53e4fe::t_897b198e9fe441 37
+  s_449c79ba53e4fe::t_0a330ba61395da 73-93
+  s_449c79ba53e4fe::t_5b7f00a3799265 102-103
+mcp-site/src/http-server.ts
+  s_449c79ba53e4fe::t_cd02b9f33d696b 2,7-18,21-40,42-47,50-66,70-72,83-89,91-104,108-110,114-121,123-131,138
+CHANGELOG.md
+  s_449c79ba53e4fe::t_726579665888a3 10-56
+mcp-financial/README.md
+  s_449c79ba53e4fe::t_408805a2268d47 58
+  s_449c79ba53e4fe::t_e1064e3daa5b61 12,120
+mcp-mailbox/README.md
+  s_449c79ba53e4fe::t_9dd2ac95697925 61
+  s_449c79ba53e4fe::t_d49ea02af08296 15,155
+mcp-admin/README.md
+  s_449c79ba53e4fe::t_4c6cf6e4c67115 39,165
+mcp-admin/package.json
+  s_449c79ba53e4fe::t_65d6ee75d08e65 3
+mcp-admin/src/http-server.ts
+  s_449c79ba53e4fe::t_ae4c9a138afdc6 4,10-22,99-126,129-132,143-144,153-155,159-163,173,184,210-212,224-225,230-236,253-255
+mcp-charge/README.md
+  s_449c79ba53e4fe::t_069f041668a95a 119,136,144
+mcp-charge/package.json
+  s_449c79ba53e4fe::t_5e89218cbe2aa9 3
+mcp-charge/src/http-server.ts
+  s_449c79ba53e4fe::t_6f563e0b3b75fc 4,10-13,15-22,99-126,129-132,143-144,153-155,159-163,173,184,206-208,220-221,226-232,249-251
+mcp-data/README.md
+  s_449c79ba53e4fe::t_54cda0940c7157 131
+mcp-data/package.json
+  s_449c79ba53e4fe::t_8b330d9f8ee710 3
+mcp-data/src/http-server.ts
+  s_449c79ba53e4fe::t_80bd7db93ed520 4,10-13,15-22,99-126,129-132,143-144,153-155,159-163,173,184,195-197,209-210,215-221,238-240
+mcp-edi/README.md
+  s_449c79ba53e4fe::t_461c88927fd153 119,136,144
+mcp-edi/package.json
+  s_449c79ba53e4fe::t_3c10eb3ff9c2cf 3
+mcp-edi/src/http-server.ts
+  s_449c79ba53e4fe::t_17e4b2f34b45f6 4,10-13,15-22,99-126,129-132,143-144,153-155,159-163,173,184,197-199,211-212,217-223,240-242
+mcp-financial/package.json
+  s_449c79ba53e4fe::t_ed932c3e98b976 3
+mcp-financial/src/http-server.ts
+  s_449c79ba53e4fe::t_420b5f55de7540 4,10-13,15-22,99-126,129-132,143-144,153-155,159-163,173,184,208-210,222-223,228-234,251-253
+mcp-help/dist/http-server.js
+  s_449c79ba53e4fe::t_bf7e1ea88f8e20 3,7-18,72-96,98-101,113-115,118-119,121-123,132,142,152-154,163-164,172-179,196-198
+mcp-help/dist/http-server.js.map
+  s_449c79ba53e4fe::t_1ee59c8933e182 1
+mcp-help/package-lock.json
+  s_449c79ba53e4fe::t_27019f3c572c1e 3,9
+mcp-help/package.json
+  s_449c79ba53e4fe::t_8d9bea36d70f3b 3
+mcp-help/src/http-server.ts
+  s_449c79ba53e4fe::t_9f48a3194fad8d 4,10-22,89-116,119-122,136-138,142-146,156,167,178-180,192-193,198-204,221-223
+mcp-mailbox/dist/http-server.js
+  s_449c79ba53e4fe::t_7164819e69756e 3,7-18,84-108,110-113,123-124,132-134,137-138,140-142,151,161,213-215,224-225,233-240,257-259
+mcp-mailbox/dist/http-server.js.map
+  s_449c79ba53e4fe::t_842dea26666508 1
+mcp-mailbox/package.json
+  s_449c79ba53e4fe::t_0ebf985f71da4e 3
+mcp-mailbox/src/http-server.ts
+  s_449c79ba53e4fe::t_e80ec2a9765c6d 4,10-22,99-126,129-132,143-144,153-155,159-163,173,184,237-239,251-252,257-263,280-282
+mcp-payment/README.md
+  s_449c79ba53e4fe::t_1f732ebd3d69ef 210
+mcp-payment/package.json
+  s_449c79ba53e4fe::t_1ecc0cebaa4bd2 3
+mcp-payment/src/http-server.ts
+  s_449c79ba53e4fe::t_67e77c754e584f 4,10-22,99-126,129-132,143-144,153-155,159-163,173,184,217-219,231-232,237-243,260-262
+mcp-site/README.md
+  s_449c79ba53e4fe::t_248a58339ef835 33,40,104
+mcp-site/dist/http-server.js
+  s_449c79ba53e4fe::t_ddaa60771e610f 2,5-15,17-58,61-63,71-75,78-89,92-95,97-104,106-114,120
+mcp-site/dist/http-server.js.map
+  s_449c79ba53e4fe::t_f6c0cbba6dd1ee 1
+mcp-site/package-lock.json
+  s_449c79ba53e4fe::t_33f5f487efd989 3,9
+mcp-site/package.json
+  s_449c79ba53e4fe::t_3bcc3c1c06caf6 3
+mcp-transfer/README.md
+  s_449c79ba53e4fe::t_d0968da7412277 120,137,145
+mcp-transfer/package.json
+  s_449c79ba53e4fe::t_cd457cef2a16da 3
+mcp-transfer/src/http-server.ts
+  s_449c79ba53e4fe::t_b4581bdc9db1b7 4,10-13,15-22,99-126,129-132,143-144,153-155,159-163,173,184,209-211,223-224,229-235,252-254
+package-lock.json
+  s_449c79ba53e4fe::t_a021c3e208a5fa 32,52,72,92,112,132,152,172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "688209db9013acdac741ad4934e5c0b774cdfa4f",
+  "prompts": {},
+  "sessions": {
+    "s_449c79ba53e4fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72f0a03-5513-4c1d-bc72-631a94acccde",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Rafael Lima <contato@rafael.adm.br>"
+    }
+  }
+}
