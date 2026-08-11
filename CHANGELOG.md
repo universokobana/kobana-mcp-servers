@@ -7,6 +7,53 @@ breaking configuration changes, and major documentation.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 2026-08-11 — `http-server.ts` migrated to stateless Streamable HTTP
+
+### Security
+- **Removed the SSE transport and its session map** from the standalone HTTP
+  servers in all ten packages. The old `/sse` + `/messages?sessionId=…` pair
+  authenticated the Bearer token once, when the SSE stream opened, and then
+  authorized every subsequent tool call by session id alone. That session id
+  came from `Math.random()` (~46 bits) rather than a CSPRNG, was published in
+  an `X-Session-Id` response header, and was readable cross-origin thanks to
+  `Access-Control-Allow-Origin: *` plus `Access-Control-Expose-Headers`.
+  Reported as PSQ-001.
+- **The exploitable path needed no token at all.** `parseConfig` falls back to
+  `getConfig()`, i.e. the process's own `KOBANA_ACCESS_TOKEN` — which is how
+  `npm run start:http` is documented to run. Combined with the wildcard CORS
+  policy and the `0.0.0.0` bind, any web page the operator visited could open
+  a session against the server, read the session id straight out of the
+  response headers, and issue tool calls that executed against the real Kobana
+  API under the server's own credentials, with the results streaming back to
+  the attacker's page. No brute force was required.
+- **Auth is now per request.** Each request constructs a fresh `Server` and
+  `StreamableHTTPServerTransport` in stateless mode
+  (`sessionIdGenerator: undefined`, `enableJsonResponse: true`), resolves its
+  own `Config`, and retains nothing afterwards. There is no session identifier
+  left to guess, replay, or leak.
+- **Bind defaults to `127.0.0.1`** instead of `0.0.0.0`. These servers are a
+  local debugging aid that can spend an ambient environment token, so they are
+  no longer reachable from the network unless `HOST` is set deliberately.
+- **`Access-Control-Allow-Origin: *` is gone.** A request carrying an `Origin`
+  header is rejected with `403 forbidden` unless that origin appears in
+  `MCP_ALLOWED_ORIGINS` (empty by default). Requests with no `Origin` — curl,
+  stdio bridges, other non-browser clients — are unaffected. This is the
+  Origin validation the MCP spec requires of local HTTP transports.
+
+### Changed
+- **Breaking:** the HTTP entrypoint now serves `POST /mcp` (Streamable HTTP).
+  `/sse` and `/messages` answer `410 gone` with a pointer to `/mcp`. Clients
+  configured against the old endpoints must be repointed. `SSEServerTransport`
+  is deprecated upstream in `@modelcontextprotocol/sdk`.
+- `/health` reports `transport: "streamable-http"` and no longer reports
+  `activeSessions`, which no longer exists.
+- Affected versions: `kobana-mcp-{admin,charge,data,edi,financial,help,payment,transfer}@<=1.0.1`,
+  `kobana-mcp-mailbox@<=1.0.2`, `kobana-mcp-site@<=1.0.0`. Fixed in `…@1.1.0`.
+- The deployed Vercel server (`kobana-mcp-remote/api/index.ts`) was never
+  affected: it has always used stateless Streamable HTTP with per-request
+  auth. This only affects operators running `npm run start:http` /
+  `bin/kobana-mcp-*-http` directly.
+
 ## 2026-06-14 — SSRF hardening in `http-server.ts`
 
 ### Security

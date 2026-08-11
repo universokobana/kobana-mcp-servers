@@ -1,6 +1,6 @@
 {
   "name": "kobana-mcp-site",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for searching and reading Kobana website content",
   "type": "module",
   "main": "dist/index.js",

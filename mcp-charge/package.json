@@ -1,6 +1,6 @@
 {
   "name": "kobana-mcp-charge",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "MCP Server for Kobana Charge API v2 (Pix payments)",
   "type": "module",
   "main": "dist/index.js",

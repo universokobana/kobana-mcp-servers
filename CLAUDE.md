@@ -34,7 +34,7 @@ cd mcp-financial && npm run clean
 
 Each MCP package (`mcp-*/`) follows this structure:
 - `src/index.ts` - Stdio transport entry point (with shebang for CLI)
-- `src/http-server.ts` - HTTP/SSE transport entry point
+- `src/http-server.ts` - Streamable HTTP transport entry point
 - `src/server.ts` - Core MCP server with tool registration
 - `src/config.ts` - Environment configuration loader
 - `src/api/client.ts` - `KobanaApiClient` HTTP client with error handling
@@ -70,8 +70,27 @@ Each server implements `zodToJsonSchema()` in `server.ts` to convert Zod schemas
 ### Transport Modes
 
 1. **Stdio** (default): For Claude Desktop integration via `index.ts`
-2. **HTTP/SSE**: Per-package single-namespace HTTP server via `http-server.ts`
-   (`/sse`, `/messages`, `/health`) — useful for local debugging.
+2. **Streamable HTTP**: Per-package single-namespace HTTP server via
+   `http-server.ts` (`POST /mcp`, `/health`, `/`) — useful for local debugging.
+
+   The HTTP server is **stateless**: each request builds a fresh `Server` +
+   `StreamableHTTPServerTransport` (`sessionIdGenerator: undefined`) and is
+   authenticated on its own. There is no session map and no session identifier,
+   which is what keeps a third party from reusing another caller's credentials.
+   When touching `http-server.ts`, keep all three of these properties:
+
+   - **Auth per request.** Never hoist credential resolution out of the
+     per-request path or cache a `Config` between requests.
+   - **Loopback bind.** `HOST` defaults to `127.0.0.1`. This server falls back
+     to `KOBANA_ACCESS_TOKEN` from its own environment, so binding it to
+     `0.0.0.0` hands that token to anything routable to the host.
+   - **Origin validation.** Requests carrying an `Origin` header are rejected
+     with 403 unless the origin is listed in `MCP_ALLOWED_ORIGINS` (empty by
+     default). Without this, any page the developer visits can reach the port
+     from their browser. Never reintroduce `Access-Control-Allow-Origin: *`.
+
+   The legacy SSE transport (`/sse` + `/messages?sessionId=…`) was removed;
+   both paths now answer 410. `SSEServerTransport` is deprecated in the SDK.
 
 ## Configuration
 
@@ -80,6 +99,8 @@ Each server implements `zodToJsonSchema()` in `server.ts` to convert Zod schemas
 | `KOBANA_ACCESS_TOKEN` | Yes | - |
 | `KOBANA_API_URL` | No | `https://api.kobana.com.br` |
 | `PORT` | No | 3000 |
+| `HOST` | No | `127.0.0.1` (HTTP mode; see Transport Modes before changing) |
+| `MCP_ALLOWED_ORIGINS` | No | empty — no browser origin is trusted (HTTP mode) |
 
 Sandbox environment: `https://api-sandbox.kobana.com.br`
 

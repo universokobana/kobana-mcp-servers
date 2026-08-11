@@ -1,6 +1,6 @@
 {
   "name": "kobana-mcp-help",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "MCP Server for Kobana Help Center - search and view help articles",
   "type": "module",
   "main": "dist/index.js",

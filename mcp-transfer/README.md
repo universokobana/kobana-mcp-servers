@@ -117,7 +117,7 @@ Add to your Claude Desktop configuration file:
 }
 ```
 
-## HTTP/SSE Mode (Hosted)
+## HTTP Mode (Streamable HTTP)
 
 Run the server as an HTTP service for remote deployments:
 
@@ -134,7 +134,7 @@ PORT=3000 KOBANA_ACCESS_TOKEN=your_token kobana-mcp-transfer-http
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `3000` | HTTP server port |
-| `HOST` | `0.0.0.0` | HTTP server host |
+| `HOST` | `127.0.0.1` | HTTP server host (loopback by default) |
 
 ### HTTP Endpoints
 
@@ -142,8 +142,7 @@ PORT=3000 KOBANA_ACCESS_TOKEN=your_token kobana-mcp-transfer-http
 |----------|--------|-------------|
 | `/` | GET | Server information |
 | `/health` | GET | Health check |
-| `/sse` | GET | SSE connection (requires Authorization header) |
-| `/messages?sessionId=<id>` | POST | Send messages to session |
+| `/mcp` | POST | Streamable HTTP MCP endpoint (auth per request) |
 
 ### Authentication for HTTP Mode
 

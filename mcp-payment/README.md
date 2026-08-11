@@ -207,8 +207,7 @@ When running in HTTP mode:
 |----------|--------|-------------|
 | `/` | GET | Server information |
 | `/health` | GET | Health check |
-| `/sse` | GET | SSE connection for MCP |
-| `/messages` | POST | Send messages to MCP |
+| `/mcp` | POST | Streamable HTTP MCP endpoint (auth per request) |
 
 ## Required OAuth Scopes
 

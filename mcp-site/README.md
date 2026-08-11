@@ -30,15 +30,14 @@ Add to your Claude Desktop configuration:
 }
 ```
 
-### HTTP/SSE Mode
+### HTTP Mode (Streamable HTTP)
 
 ```bash
 npm run start:http
 ```
 
 Endpoints:
-- `GET /sse` - Establish SSE connection
-- `POST /messages?sessionId=<id>` - Send messages
+- `POST /mcp` - Streamable HTTP MCP endpoint (auth per request)
 - `GET /health` - Health check
 - `GET /` - Server info
 
@@ -102,7 +101,7 @@ The content is cached in the user's cache directory:
 | `KOBANA_SITE_ZIP_URL` | URL to download site content | `https://www.kobana.com.br/kobana-site-markdown.zip` |
 | `KOBANA_SITE_BASE_URL` | Base URL for generated links | `https://www.kobana.com.br` |
 | `PORT` | HTTP server port | `3001` |
-| `HOST` | HTTP server host | `0.0.0.0` |
+| `HOST` | HTTP server host (loopback by default) | `127.0.0.1` |
 
 ## URL Format
 

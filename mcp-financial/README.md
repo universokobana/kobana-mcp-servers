@@ -9,7 +9,7 @@ MCP (Model Context Protocol) server for the Kobana Financial API v2. This server
 - Track account balances
 - View and sync statement transactions
 - Import statement transaction files
-- Both stdio and HTTP/SSE transports supported
+- Both stdio and Streamable HTTP transports supported
 - Bearer token authentication
 
 ## Installation
@@ -55,7 +55,7 @@ kobana-mcp-financial-http
 The HTTP server will start on port 3001 by default. Customize with:
 
 ```bash
-PORT=3001 HOST=0.0.0.0 kobana-mcp-financial-http
+PORT=3001 kobana-mcp-financial-http
 ```
 
 ## Claude Desktop Configuration
@@ -117,8 +117,7 @@ When running in HTTP mode:
 
 - `GET /` - Server info and available tools
 - `GET /health` - Health check
-- `GET /sse` - SSE connection for MCP protocol
-- `POST /messages?sessionId=<id>` - Send MCP messages
+- `POST /mcp` - Streamable HTTP MCP endpoint (auth per request)
 
 ### Authentication
 

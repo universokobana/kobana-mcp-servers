@@ -36,7 +36,7 @@ export KOBANA_API_URL="https://api.kobana.com.br"  # Default
 npx kobana-mcp-admin
 ```
 
-### As an HTTP server (SSE transport)
+### As an HTTP server (Streamable HTTP transport)
 
 ```bash
 npx kobana-mcp-admin-http
@@ -162,8 +162,7 @@ When running as an HTTP server:
 |----------|--------|-------------|
 | `/` | GET | Server information |
 | `/health` | GET | Health check |
-| `/sse` | GET | SSE connection endpoint |
-| `/messages` | POST | Message handling endpoint |
+| `/mcp` | POST | Streamable HTTP MCP endpoint (auth per request) |
 
 ## Authentication
 

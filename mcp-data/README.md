@@ -128,8 +128,7 @@ When running in HTTP mode:
 
 - `GET /` - Server information
 - `GET /health` - Health check
-- `GET /sse` - SSE connection for MCP protocol
-- `POST /messages?sessionId=<id>` - Send messages to MCP server
+- `POST /mcp` - Streamable HTTP MCP endpoint (auth per request)
 
 ### Authentication
 

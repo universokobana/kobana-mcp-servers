@@ -1,13 +1,21 @@
 #!/usr/bin/env node
 import { createServer as createHttpServer } from 'http';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server.js';
 import { getConfig } from './config.js';
 const PORT = parseInt(process.env.PORT || '3008', 10);
-const HOST = process.env.HOST || '0.0.0.0';
-const activeTransports = new Map();
-function generateSessionId() {
-    return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+// Loopback by default. This is a local debugging server that will fall back to
+// the credentials in its own environment, so binding it to 0.0.0.0 would let
+// anything routable to this host spend that token. Override HOST deliberately.
+const HOST = process.env.HOST || '127.0.0.1';
+// Browser origins permitted to call this server (comma-separated). Empty by
+// default: no cross-origin caller is trusted.
+function getAllowedOrigins() {
+    const raw = process.env.MCP_ALLOWED_ORIGINS;
+    if (!raw) {
+        return [];
+    }
+    return raw.split(',').map(s => s.trim()).filter(Boolean);
 }
 // Hostname allowlist for X-Kobana-Help-Url. Defaults to *.kobana.com.br.
 // Override with KOBANA_HELP_URL_ALLOWLIST (comma-separated; entries starting
@@ -61,13 +69,36 @@ function parseConfig(req) {
         locale: locale || config.locale,
     };
 }
-function setCorsHeaders(res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Kobana-Help-Url, X-Kobana-Help-Locale');
-    res.setHeader('Access-Control-Expose-Headers', 'X-Session-Id');
+// Validate the Origin header before doing any work. The MCP spec requires this
+// for local HTTP transports: without it, any page the developer happens to
+// visit can reach this port from their browser and drive tool calls under
+// whatever credentials this process holds. Returns true when the request has
+// already been answered and the caller should stop.
+function rejectDisallowedOrigin(req, res) {
+    const origin = req.headers.origin;
+    // No Origin means a non-browser client (curl, an MCP stdio bridge). There is
+    // nothing to validate and no ambient-credential risk to guard against.
+    if (typeof origin !== 'string' || origin.length === 0) {
+        return false;
+    }
+    if (getAllowedOrigins().includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Mcp-Protocol-Version, X-Kobana-Help-Url, X-Kobana-Help-Locale');
+        return false;
+    }
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+        error: 'forbidden',
+        error_description: `Origin "${origin}" is not allowed. Set MCP_ALLOWED_ORIGINS to permit it.`,
+    }));
+    return true;
 }
-async function handleSSE(req, res) {
+// A fresh server and transport per request, with session management disabled.
+// Every request therefore carries its own credentials and no state survives it
+// — there is no session identifier for a third party to guess or reuse.
+async function handleMcp(req, res) {
     const helpUrlHeader = req.headers['x-kobana-help-url'];
     if (typeof helpUrlHeader === 'string' && helpUrlHeader.length > 0) {
         const error = validateHelpUrl(helpUrlHeader);
@@ -78,41 +109,18 @@ async function handleSSE(req, res) {
         }
     }
     const config = parseConfig(req);
-    const sessionId = generateSessionId();
-    res.setHeader('X-Session-Id', sessionId);
     const server = createServer(config);
-    const transport = new SSEServerTransport('/messages', res);
-    activeTransports.set(sessionId, { transport, response: res });
-    res.on('close', () => {
-        activeTransports.delete(sessionId);
+    const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined, // Stateless mode
+        enableJsonResponse: true,
     });
-    await server.connect(transport);
-}
-async function handleMessage(req, res) {
-    const url = new URL(req.url || '/', `http://${req.headers.host}`);
-    const sessionId = url.searchParams.get('sessionId');
-    if (!sessionId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing sessionId parameter' }));
-        return;
-    }
-    const active = activeTransports.get(sessionId);
-    if (!active) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Session not found' }));
-        return;
-    }
-    let body = '';
-    for await (const chunk of req) {
-        body += chunk;
-    }
     try {
-        await active.transport.handlePostMessage(req, res, body);
+        await server.connect(transport);
+        await transport.handleRequest(req, res);
     }
-    catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: message }));
+    finally {
+        await transport.close();
+        await server.close();
     }
 }
 function handleHealth(_req, res) {
@@ -121,7 +129,7 @@ function handleHealth(_req, res) {
         status: 'healthy',
         server: 'kobana-mcp-help',
         version: '1.0.0',
-        activeSessions: activeTransports.size,
+        transport: 'streamable-http',
     }));
 }
 function handleInfo(_req, res) {
@@ -131,8 +139,7 @@ function handleInfo(_req, res) {
         version: '1.0.0',
         description: 'MCP Server for Kobana Help Center',
         endpoints: {
-            sse: '/sse',
-            messages: '/messages',
+            mcp: '/mcp',
             health: '/health',
         },
         tools: [
@@ -142,7 +149,9 @@ function handleInfo(_req, res) {
     }));
 }
 const httpServer = createHttpServer(async (req, res) => {
-    setCorsHeaders(res);
+    if (rejectDisallowedOrigin(req, res)) {
+        return;
+    }
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
@@ -151,17 +160,22 @@ const httpServer = createHttpServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://${req.headers.host}`);
     const pathname = url.pathname;
     try {
-        if (pathname === '/sse' && req.method === 'GET') {
-            await handleSSE(req, res);
-        }
-        else if (pathname === '/messages' && req.method === 'POST') {
-            await handleMessage(req, res);
+        if (pathname === '/mcp') {
+            await handleMcp(req, res);
         }
         else if (pathname === '/health' && req.method === 'GET') {
             handleHealth(req, res);
         }
         else if (pathname === '/' && req.method === 'GET') {
             handleInfo(req, res);
+        }
+        else if (pathname === '/sse' || pathname === '/messages') {
+            // The SSE transport this server used to expose has been removed.
+            res.writeHead(410, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                error: 'gone',
+                error_description: 'The SSE transport was removed. Use POST /mcp (Streamable HTTP) instead.',
+            }));
         }
         else {
             res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -179,9 +193,8 @@ const httpServer = createHttpServer(async (req, res) => {
 httpServer.listen(PORT, HOST, () => {
     console.log(`Kobana MCP Help Server (HTTP) running on http://${HOST}:${PORT}`);
     console.log('Endpoints:');
-    console.log(`  SSE:      GET  http://${HOST}:${PORT}/sse`);
-    console.log(`  Messages: POST http://${HOST}:${PORT}/messages?sessionId=<id>`);
-    console.log(`  Health:   GET  http://${HOST}:${PORT}/health`);
-    console.log(`  Info:     GET  http://${HOST}:${PORT}/`);
+    console.log(`  MCP:    POST http://${HOST}:${PORT}/mcp`);
+    console.log(`  Health: GET  http://${HOST}:${PORT}/health`);
+    console.log(`  Info:   GET  http://${HOST}:${PORT}/`);
 });
 //# sourceMappingURL=http-server.js.map
