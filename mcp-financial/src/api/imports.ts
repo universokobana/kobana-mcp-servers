@@ -30,11 +30,23 @@ export async function createStatementTransactionImport(
   if (idempotencyKey) {
     headers['X-Idempotency-Key'] = idempotencyKey;
   }
-  return client.post<Import>(
-    getBasePath(financialAccountUid),
-    { import: input },
-    headers
-  );
+
+  const form = new FormData();
+  const fileBytes = Buffer.from(input.source, 'base64');
+  form.append('source', new Blob([fileBytes]), input.file_name || 'statement');
+  if (input.external_id) {
+    form.append('external_id', input.external_id);
+  }
+  if (input.custom_data) {
+    form.append('custom_data', JSON.stringify(input.custom_data));
+  }
+  if (input.tags) {
+    for (const tag of input.tags) {
+      form.append('tags[]', tag);
+    }
+  }
+
+  return client.postForm<Import>(getBasePath(financialAccountUid), form, headers);
 }
 
 export async function getStatementTransactionImport(

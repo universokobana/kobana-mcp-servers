@@ -96,14 +96,55 @@ export const getFinancialAccountCommandSchema = z.object({
 export const listStatementTransactionsSchema = z.object({
   financial_account_uid: z.string().describe('UID of the financial account'),
   page: z.number().int().positive().optional().describe('Page number'),
-  per_page: z.number().int().min(1).max(50).optional().describe('Items per page'),
-  occurrence_date_from: z.string().optional().describe('Filter by minimum occurrence date (ISO 8601)'),
-  occurrence_date_to: z.string().optional().describe('Filter by maximum occurrence date (ISO 8601)'),
+  per_page: z.number().int().min(1).max(500).optional().describe('Items per page (default: 50, max: 500)'),
+  date_window: z.enum(['strict']).optional().describe('Send "strict" to opt into the 180-day max window that becomes the default on 2027-02-05. Without it, a request with no dates still returns the full account history (until that date).'),
+  occurrence_date_from: z.string().optional().describe('Filter by minimum occurrence date (ISO 8601). With date_window=strict and omitted, derived from occurrence_date_to (180 days before) or today.'),
+  occurrence_date_to: z.string().optional().describe('Filter by maximum occurrence date (ISO 8601). With date_window=strict and omitted, derived from occurrence_date_from (180 days after) or today.'),
+  kind: z.enum(['credit', 'debit']).optional().describe('Filter by transaction kind'),
+  amount_from: z.number().optional().describe('Minimum transaction amount, signed in reais (debits are negative, matching the amount field)'),
+  amount_to: z.number().optional().describe('Maximum transaction amount, signed in reais'),
+  amount_abs_from: z.number().optional().describe('Minimum absolute amount, ignoring sign — use for "above X, in or out"'),
+  amount_abs_to: z.number().optional().describe('Maximum absolute amount, ignoring sign'),
+  category: z.string().optional().describe('Category code, or comma-separated list of codes. See GET list_financial_statement_categories. Unknown codes are ignored.'),
+  updated_since: z.string().optional().describe('Return only transactions changed at or after this instant (ISO 8601 date-time). For incremental sync.'),
+  q: z.string().optional().describe('Free-text search on the transaction description sent by the bank. Matches any substring, case- and accent-insensitive.'),
+  view: z.enum(['compact']).optional().describe('Use "compact" to receive only the essential fields of each transaction'),
+  fields: z.string().optional().describe('Comma-separated list of fields to return per transaction. Takes precedence over view. An unknown field causes a 422.'),
+  pagination: z.enum(['keyset']).optional().describe('Use "keyset" for cursor-based pagination, stable when new transactions arrive mid-scan. The response then carries next_cursor instead of prev_url/next_url.'),
+  cursor: z.string().optional().describe('Cursor returned in the previous response pagination.next_cursor. Only takes effect with pagination=keyset.'),
+});
+
+export const summarizeStatementTransactionsSchema = z.object({
+  financial_account_uid: z.string().describe('UID of the financial account'),
+  group_by: z.string().optional().describe('Comma-separated grouping dimensions: day, week, month, kind, category. Default: month.'),
+  occurrence_date_from: z.string().optional().describe('Start of the window (ISO 8601 date). Same derivation rule as listing, up to a 730-day span.'),
+  occurrence_date_to: z.string().optional().describe('End of the window (ISO 8601 date)'),
+  kind: z.enum(['credit', 'debit']).optional().describe('Same filter as the listing endpoint'),
+  category: z.string().optional().describe('Same filter as the listing endpoint'),
+  q: z.string().optional().describe('Same filter as the listing endpoint'),
 });
 
 export const syncStatementTransactionsSchema = z.object({
   financial_account_uid: z.string().describe('UID of the financial account'),
+  start_at: z.string().optional().describe('Sync window start date (ISO 8601 date). Default: first day of the current month. Cannot be more than 2 years ago.'),
+  end_at: z.string().optional().describe('Sync window end date (ISO 8601 date). Default: today. Cannot be in the future.'),
 });
+
+export const listStatementTransactionSyncsSchema = z.object({
+  financial_account_uid: z.string().describe('UID of the financial account'),
+  page: z.number().int().positive().optional().describe('Page number'),
+  per_page: z.number().int().min(1).max(50).optional().describe('Items per page'),
+  status: z.enum(['pending', 'processing', 'done', 'partial', 'failed']).optional().describe('Filter by the aggregated sync status'),
+});
+
+export const getStatementTransactionSyncSchema = z.object({
+  financial_account_uid: z.string().describe('UID of the financial account'),
+  uid: z.string().describe('UID of the synchronization request'),
+});
+
+// Statement Category Schemas
+
+export const listStatementCategoriesSchema = z.object({}).describe('List the catalog of statement transaction categories, needed to use the category filter on transaction listing/summary');
 
 // Statement Transaction Import Schemas
 
@@ -122,7 +163,8 @@ export const listStatementTransactionImportsSchema = z.object({
 
 export const createStatementTransactionImportSchema = z.object({
   financial_account_uid: z.string().describe('UID of the financial account'),
-  source: z.string().describe('File content for import (base64 encoded)'),
+  source: z.string().describe('CNAB statement file content, base64 encoded. Sent to the API as a multipart file upload.'),
+  file_name: z.string().optional().describe('File name to use for the upload (e.g. "statement.ret")'),
   custom_data: z.record(z.unknown()).optional().describe('Custom data as key-value JSON'),
   external_id: z.string().optional().describe('External ID in your system'),
   tags: z.array(z.string()).optional().describe('Tags for categorization'),

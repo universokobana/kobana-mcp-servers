@@ -17,19 +17,23 @@ export class KobanaApiClient {
     headers?: Record<string, string>
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
+    const isFormData = body instanceof FormData;
 
     const requestHeaders: Record<string, string> = {
       'Authorization': `Bearer ${this.accessToken}`,
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
       'User-Agent': 'kobana-mcp-server/1.0.0',
+      // FormData bodies must not carry an explicit Content-Type: fetch
+      // sets one itself (multipart/form-data; boundary=...) and a
+      // hardcoded value here would omit the boundary and break parsing.
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...headers,
     };
 
     const response = await fetch(url, {
       method,
       headers: requestHeaders,
-      body: body ? JSON.stringify(body) : undefined,
+      body: isFormData ? (body as FormData) : body ? JSON.stringify(body) : undefined,
       // Refuse to follow HTTP redirects. Kobana API endpoints don't
       // redirect under normal operation, and a redirect target could be
       // an attacker-controlled host that would receive the bearer token
@@ -74,6 +78,10 @@ export class KobanaApiClient {
 
   async post<T>(path: string, body: unknown, headers?: Record<string, string>): Promise<T> {
     return this.request<T>('POST', path, body, headers);
+  }
+
+  async postForm<T>(path: string, form: FormData, headers?: Record<string, string>): Promise<T> {
+    return this.request<T>('POST', path, form, headers);
   }
 
   async put<T>(path: string, body?: unknown, headers?: Record<string, string>): Promise<T> {

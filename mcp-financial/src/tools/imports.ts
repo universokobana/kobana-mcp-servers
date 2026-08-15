@@ -44,7 +44,7 @@ export const listStatementTransactionImportsTool: ToolDefinition = {
 
 export const createStatementTransactionImportTool: ToolDefinition = {
   name: 'create_financial_statement_transaction_import',
-  description: 'Create a new statement transaction import from a file. The source should be the file content (base64 encoded).',
+  description: 'Import a bank statement from a CNAB file, associating the resulting transactions with the financial account. Asynchronous: source should be the file content (base64 encoded); the response returns the import UID for status tracking via get_financial_statement_transaction_import.',
   inputSchema: createStatementTransactionImportSchema,
   handler: async (client, args) => {
     try {

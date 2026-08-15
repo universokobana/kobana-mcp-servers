@@ -23,14 +23,14 @@ Kobana is a financial automation platform. Learn more at: https://www.kobana.com
 | [mcp-charge](./mcp-charge) | [![npm](https://img.shields.io/npm/v/kobana-mcp-charge.svg)](https://www.npmjs.com/package/kobana-mcp-charge) | 35 | Pix charges, accounts, automatic pix, payments |
 | [mcp-data](./mcp-data) | [![npm](https://img.shields.io/npm/v/kobana-mcp-data.svg)](https://www.npmjs.com/package/kobana-mcp-data) | 2 | Bank billet queries |
 | [mcp-edi](./mcp-edi) | [![npm](https://img.shields.io/npm/v/kobana-mcp-edi.svg)](https://www.npmjs.com/package/kobana-mcp-edi) | 4 | EDI boxes management |
-| [mcp-financial](./mcp-financial) | [![npm](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial) | 15 | Financial accounts, balances, statements |
+| [mcp-financial](./mcp-financial) | [![npm](https://img.shields.io/npm/v/kobana-mcp-financial.svg)](https://www.npmjs.com/package/kobana-mcp-financial) | 19 | Financial accounts, balances, statements |
 | [mcp-help](./mcp-help) | [![npm](https://img.shields.io/npm/v/kobana-mcp-help.svg)](https://www.npmjs.com/package/kobana-mcp-help) | 2 | Help Center articles (no auth required) |
 | [mcp-mailbox](./mcp-mailbox) | [![npm](https://img.shields.io/npm/v/kobana-mcp-mailbox.svg)](https://www.npmjs.com/package/kobana-mcp-mailbox) | 41 | Mailbox entries, files, email/S3/SFTP/WhatsApp/Syncthing channels |
 | [mcp-payment](./mcp-payment) | [![npm](https://img.shields.io/npm/v/kobana-mcp-payment.svg)](https://www.npmjs.com/package/kobana-mcp-payment) | 24 | Bank billets, Pix, DARF, taxes, utilities |
 | [mcp-site](./mcp-site) | [![npm](https://img.shields.io/npm/v/kobana-mcp-site.svg)](https://www.npmjs.com/package/kobana-mcp-site) | 2 | Website content search (no auth required) |
 | [mcp-transfer](./mcp-transfer) | [![npm](https://img.shields.io/npm/v/kobana-mcp-transfer.svg)](https://www.npmjs.com/package/kobana-mcp-transfer) | 16 | Pix, TED, internal transfers |
 
-**Total: 158 tools across 10 MCP servers**
+**Total: 162 tools across 10 MCP servers**
 
 ## Quick Start with npx
 
@@ -430,7 +430,7 @@ PORT=3009 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-mailbox-http
 | `get_edi_box` | Get a specific EDI box |
 | `update_edi_box` | Update an EDI box |
 
-### kobana-mcp-financial (15 tools)
+### kobana-mcp-financial (19 tools)
 
 | Tool | Description |
 |------|-------------|
@@ -445,7 +445,11 @@ PORT=3009 KOBANA_ACCESS_TOKEN=your_token npx kobana-mcp-mailbox-http
 | `list_financial_account_commands` | List account commands |
 | `get_financial_account_command` | Get a specific command |
 | `list_financial_statement_transactions` | List statement transactions |
-| `sync_financial_statement_transactions` | Sync transactions |
+| `summarize_financial_statement_transactions` | Aggregate transactions into totals by group |
+| `sync_financial_statement_transactions` | Sync transactions from the bank |
+| `list_financial_statement_transaction_syncs` | List statement sync requests |
+| `get_financial_statement_transaction_sync` | Get a statement sync request's status |
+| `list_financial_statement_categories` | List the statement category catalog |
 | `list_financial_statement_transaction_imports` | List imports |
 | `create_financial_statement_transaction_import` | Create an import |
 | `get_financial_statement_transaction_import` | Get an import |
