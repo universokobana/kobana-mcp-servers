@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { KobanaApiClient, KobanaApiError } from '../api/client.js';
+import { KobanaApiClient, KobanaApiError, KobanaApiTimeoutError } from '../api/client.js';
 import * as statementTransactionsApi from '../api/statement-transactions.js';
 import {
   listStatementTransactionsSchema,
@@ -62,6 +62,17 @@ export const summarizeStatementTransactionsTool: ToolDefinition = {
       );
       return { success: true, data: summary };
     } catch (error) {
+      if (error instanceof KobanaApiTimeoutError) {
+        // The summary endpoint is the one aggregation authority; when it does
+        // not answer, fail truthfully and point at the listing route instead
+        // of recomputing totals client-side (a second sum authority could
+        // silently disagree with the server about money).
+        return {
+          success: false,
+          ...formatError(error),
+          hint: 'The summary endpoint did not answer. For totals, fall back to list_financial_statement_transactions with the same filters and per_page=500, then aggregate the returned pages.',
+        };
+      }
       return { success: false, ...formatError(error) };
     }
   },
