@@ -8,7 +8,16 @@ milestones.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## 1.2.1 — 2026-09-12
+
+## 1.2.1 — Unreleased
+
+> ### ⚠ Not published yet
+>
+> The repository declares `1.2.1`, but npm still serves **`1.2.0`**. Everything below is
+> merged and verified; only the publish step is outstanding, blocked on registry
+> credentials. **Until it happens, the fixes described here are not in the artifact you
+> install.** This heading becomes `1.2.1 — <date>` when the release actually goes out.
+
 
 ### Fixed
 
@@ -17,15 +26,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   *headers* arrive, so an origin that accepted a request and never completed the body
   left `response.json()` awaiting forever — hanging the tool call with no upper bound.
   Observed in production on 2026-08-24 against the financial statement summary
-  endpoint, where two calls sat silent past a calling client's 125s watchdog and
-  killed its whole agent turn.
+  endpoint, where two calls sat silent past a calling client's 125s watchdog and killed
+  its whole agent turn.
 
-  One `AbortSignal.timeout` now covers connection, headers **and** body reads.
-  Timeouts raise a dedicated `KobanaApiTimeoutError`, distinct from `KobanaApiError`
-  because there is no server answer to report. Default 30s, tunable with
+  One `AbortSignal.timeout` now covers connection, headers **and** body reads. Timeouts
+  raise a dedicated `KobanaApiTimeoutError`, distinct from `KobanaApiError` because
+  there is no server answer to report. Default 30s, tunable with
   `KOBANA_API_TIMEOUT_MS`.
-
-### Fixed
 
 - **The reported version is now the real one.** `serverInfo.version` in the MCP
   handshake, the `/health` and `/` responses of the HTTP server, and the `User-Agent`
@@ -37,6 +44,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Note
 
-Unlike its sibling packages, `1.2.0` already carried the stateless HTTP transport
-(PSQ-001) and the redirect refusal, so this release is not a security catch-up — it is
-the timeout fence plus version truth.
+Unlike its sibling packages, the published `1.2.0` already carried the stateless HTTP
+transport (PSQ-001) and the redirect refusal, so this release is not a security
+catch-up — it is the timeout fence plus version truth.
+
+### When this is published
+
+If you are running **1.2.0**, upgrade as soon as `1.2.1` appears on npm — that version
+does not contain the fixes above.

@@ -62,4 +62,28 @@ packages.
   **Navigator decision**, not the Driver's, and is raised explicitly in CV1.DS1's
   plan.
 
+## Addendum — 2026-09-12, the same evening
+
+The first attempt to act on this decision **could not complete**: no npm credentials were
+available, so [CV1.DS1](../../roadmap/cv1-release-and-consumers/cv1-ds1-version-truth-and-publish/index.md)
+is code-complete and paused with nothing published.
+
+Two things follow, and both sharpen rather than weaken this decision:
+
+- **The latency clock keeps running.** Item 3 says publishing latency is tracked. It now
+  stands at **one month** for PSQ-001 and **three months** for the redirect refusal, and
+  both are still counting. The repository declaring `1.1.1` changes nothing about what a
+  consumer installs.
+- **A staged release must announce that it is staged.** The first pass wrote changelogs
+  asserting `published 2026-09-12` for a release that never went out — replacing one
+  untruth (a version nobody could verify) with another (a publication that did not
+  happen). Corrected to `— Unreleased` with an explicit banner, and two assertions in the
+  lockstep suite now hold it there.
+
+This also moves [CV1.DS2](../../roadmap/cv1-release-and-consumers/index.md) from
+convenience to prerequisite. A publish that depends on a human having interactive
+registry credentials at the right moment is not a release process; it is the same
+single point of failure that produced this decision, and it has now failed twice in one
+day — once by nobody remembering, once by nobody being able.
+
 **Status:** Active.

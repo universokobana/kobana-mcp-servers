@@ -85,4 +85,47 @@ describe.each(PACKAGES)('mcp-%s', (pkg) => {
   it('the package name is the one the User-Agent will report', () => {
     expect(name).toBe(`kobana-mcp-${pkg}`);
   });
+
+  // Added after the first release attempt shipped changelogs that asserted a
+  // publish date for a release that never went out. A bump with no changelog
+  // entry (or a changelog entry for a version nobody bumped to) is the same
+  // class of drift this story exists to close — so it is asserted, not trusted.
+  it('the newest changelog entry names the manifest version', () => {
+    const changelog = join(ROOT, `mcp-${pkg}`, 'CHANGELOG.md');
+    expect(existsSync(changelog), `${changelog} is missing`).toBe(true);
+
+    const text = readFileSync(changelog, 'utf8');
+    const firstEntry = text.match(/^##\s+(\d+\.\d+\.\d+)\s+—\s+(.+)$/m);
+    expect(firstEntry, 'no `## <version> — <date|Unreleased>` heading found').not.toBeNull();
+    expect(firstEntry![1]).toBe(version);
+  });
+
+  // What this CANNOT do, stated plainly: it cannot tell whether a version is
+  // actually on npm. That needs a network call, and tests do not make them.
+  // Mutation-checked on 2026-09-12 — dating the heading of a still-unpublished
+  // release passes a shape-only assertion, so the honest guarantee here is
+  // narrower: the heading and the "not published" banner must AGREE. That
+  // catches the realistic accident (dating the heading at publish time and
+  // leaving the banner, or removing the banner without dating the heading).
+  // A deliberate lie — dated heading, banner deleted, nothing published — is
+  // not detectable here. The real guard for that is publishing and dating in
+  // one scripted step (CV1.DS2), not a unit test.
+  it('the heading and the unreleased banner agree', () => {
+    const text = readFileSync(join(ROOT, `mcp-${pkg}`, 'CHANGELOG.md'), 'utf8');
+    const heading = text.match(/^##\s+\d+\.\d+\.\d+\s+—\s+(.+)$/m)![1].trim();
+    const isUnreleased = heading === 'Unreleased';
+    const isDated = /^\d{4}-\d{2}-\d{2}$/.test(heading);
+    const hasBanner = /Not published yet/.test(text);
+
+    expect(
+      isUnreleased || isDated,
+      `heading suffix ${JSON.stringify(heading)} is neither "Unreleased" nor YYYY-MM-DD`
+    ).toBe(true);
+    expect(
+      hasBanner,
+      isUnreleased
+        ? 'heading says Unreleased but the "Not published yet" banner is missing'
+        : 'heading carries a release date but the "Not published yet" banner is still there'
+    ).toBe(isUnreleased);
+  });
 });

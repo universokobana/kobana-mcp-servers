@@ -2,7 +2,8 @@
 
 # CV1.DS1 — Version truth and the first deliberate publish
 
-**Status:** 🟢 Active — implementation complete, **blocked on npm authentication**
+**Status:** ⏸ Paused — code complete and verified; **the publish is blocked on registry
+credentials with no date**
 **Type:** Technical Story
 
 ---
@@ -78,8 +79,25 @@ Then the artifact contains the stateless HTTP transport and the timeout fence,
 | Version bumps (`financial` 1.2.1, nine × 1.1.1) | ✅ done — approved by the Navigator |
 | Per-package changelogs with the exposure statement | ✅ done — and `CHANGELOG.md` added to `files`, without which the disclosure would not ship |
 | `npm publish --dry-run` | ✅ done — versions and file lists verified |
-| **`npm publish`** | ⛔ **blocked** — `npm whoami` returns `ENEEDAUTH` |
+| **`npm publish`** | ⛔ **blocked, indefinitely** — no registry credentials available |
 | Delete `kia-desktop`'s override, rebuild | ⛔ blocked — depends on the publish |
+
+### The paused state, stated honestly
+
+The manifests declare `1.1.1`/`1.2.1` while npm still serves `1.0.x`/`1.2.0`. **That is
+the exact drift this story exists to remove, now reproduced one notch further along** —
+so it is marked rather than left implicit:
+
+- Every changelog entry is headed `— Unreleased` and carries a **"Not published yet"**
+  banner naming what npm actually serves.
+- Two assertions in the lockstep suite keep that honest: the newest changelog entry must
+  name the manifest version, and the heading must agree with the banner.
+- The security exposure windows are written as **still open** ("still not on npm as of
+  2026-09-12"), not closed.
+
+The first pass got this wrong: the changelogs asserted `published 2026-09-12` for a
+release that never went out. Corrected, and the correction is what motivated the two new
+assertions.
 
 Disclosure route: **plain changelog statement**, decided by the Navigator 2026-09-12
 (option (b) of the plan's open question). No public advisory.

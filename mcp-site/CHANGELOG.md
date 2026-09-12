@@ -8,16 +8,23 @@ milestones.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## 1.1.1 — 2026-09-12
+
+## 1.1.1 — Unreleased
+
+> ### ⚠ Not published yet
+>
+> The repository declares `1.1.1`, but npm still serves **`1.0.0`**. Everything below is
+> merged and verified; only the publish step is outstanding, blocked on registry
+> credentials. **Until it happens, the fixes described here are not in the artifact you
+> install.** This heading becomes `1.1.1 — <date>` when the release actually goes out.
+
 
 ### Security
 
-A fix that had already been merged into `main` is published here for the first
-time. While it sat unreleased, the earlier versions stayed the installable
-artifact.
+A fix merged into `main` that has **never been published**.
 
-- **Stateless Streamable HTTP transport (PSQ-001)** — merged 2026-08-11, published
-  2026-09-12: **absent from npm for one month.** The previous SSE transport
+- **Stateless Streamable HTTP transport (PSQ-001)** — merged 2026-08-11 and **still
+  not on npm as of 2026-09-12: over a month unreleased.** The previous SSE transport
   authenticated the bearer token once, when the stream opened, then authorized every
   subsequent tool call by session id alone. That id came from `Math.random()` (~46
   bits, not a CSPRNG), was published in an `X-Session-Id` response header, and was
@@ -31,7 +38,8 @@ artifact.
   with no session map and no session identifier.
 
   **Scope: the HTTP transport only.** If you run this package over **stdio** — the
-  default, and how it is normally spawned by an MCP client — you were not exposed.
+  default, and how an MCP client normally spawns it — you were never exposed through
+  this path.
 
 ### Fixed
 
@@ -45,12 +53,12 @@ artifact.
 
 ### Known gap
 
-This package does not use `KobanaApiClient`, so the per-request timeout added to the
-API packages does not apply to it. Its own outbound request is still unfenced and can
-hang without an upper bound; that is tracked in the repository's technical debt ledger
-and needs a timeout budget of its own rather than an inherited one.
+This package does not use `KobanaApiClient`, so the per-request timeout added to the API
+packages does not apply to it. Its own outbound request is still unfenced and can hang
+without an upper bound. That needs a timeout budget of its own rather than an inherited
+one, and is tracked in the repository's technical debt ledger.
 
-### Upgrading
+### When this is published
 
-If you are running **1.0.x**, upgrade. Those versions remain installable from
-npm but do not contain the fixes above.
+If you are running **1.0.0**, upgrade as soon as `1.1.1` appears on npm — that version
+does not contain the fixes above.

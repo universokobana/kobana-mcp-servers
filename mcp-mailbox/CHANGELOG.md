@@ -8,16 +8,24 @@ milestones.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## 1.1.1 — 2026-09-12
+
+## 1.1.1 — Unreleased
+
+> ### ⚠ Not published yet
+>
+> The repository declares `1.1.1`, but npm still serves **`1.0.2`**. Everything below is
+> merged and verified; only the publish step is outstanding, blocked on registry
+> credentials. **Until it happens, the fixes described here are not in the artifact you
+> install.** This heading becomes `1.1.1 — <date>` when the release actually goes out.
+
 
 ### Security
 
-Two fixes that had already been merged into `main` are published here for the
-first time. While they sat unreleased, `1.0.0`–`1.0.1` stayed the installable
-artifact.
+Two fixes merged into `main` that have **never been published**. While they sit
+unreleased, the versions listed below remain the installable artifact.
 
-- **Stateless Streamable HTTP transport (PSQ-001)** — merged 2026-08-11, published
-  2026-09-12: **absent from npm for one month.** The previous SSE transport
+- **Stateless Streamable HTTP transport (PSQ-001)** — merged 2026-08-11 and **still
+  not on npm as of 2026-09-12: over a month unreleased.** The previous SSE transport
   authenticated the bearer token once, when the stream opened, then authorized every
   subsequent tool call by session id alone. That id came from `Math.random()` (~46
   bits, not a CSPRNG), was published in an `X-Session-Id` response header, and was
@@ -31,14 +39,15 @@ artifact.
   with no session map and no session identifier.
 
   **Scope: the HTTP transport only.** If you run this package over **stdio** — the
-  default, and how it is normally spawned by an MCP client — you were not exposed.
+  default, and how an MCP client normally spawns it — you were never exposed through
+  this path.
 
-- **HTTP redirects are refused (`redirect: 'error'`)** — merged 2026-06-15, published
-  2026-09-12: **absent from npm for three months.** `fetch` follows redirects by
+- **HTTP redirects are refused (`redirect: 'error'`)** — merged 2026-06-15 and **still
+  not on npm as of 2026-09-12: three months unreleased.** `fetch` follows redirects by
   default and re-sends request headers to the redirect target, so a redirect to an
-  attacker-controlled host would have received the `Authorization` header carrying
-  your Kobana access token. This closes the second hop of the SSRF chain whose first
-  hop was fixed in 1.0.1.
+  attacker-controlled host would have received the `Authorization` header carrying your
+  Kobana access token. This closes the second hop of the SSRF chain whose first hop was
+  fixed in `1.0.1`.
 
 ### Fixed
 
@@ -47,15 +56,13 @@ artifact.
   *headers* arrive, so an origin that accepted a request and never completed the body
   left `response.json()` awaiting forever — hanging the tool call with no upper bound.
   Observed in production on 2026-08-24 against the financial statement summary
-  endpoint, where two calls sat silent past a calling client's 125s watchdog and
-  killed its whole agent turn.
+  endpoint, where two calls sat silent past a calling client's 125s watchdog and killed
+  its whole agent turn.
 
-  One `AbortSignal.timeout` now covers connection, headers **and** body reads.
-  Timeouts raise a dedicated `KobanaApiTimeoutError`, distinct from `KobanaApiError`
-  because there is no server answer to report. Default 30s, tunable with
+  One `AbortSignal.timeout` now covers connection, headers **and** body reads. Timeouts
+  raise a dedicated `KobanaApiTimeoutError`, distinct from `KobanaApiError` because
+  there is no server answer to report. Default 30s, tunable with
   `KOBANA_API_TIMEOUT_MS`.
-
-### Fixed
 
 - **The reported version is now the real one.** `serverInfo.version` in the MCP
   handshake, the `/health` and `/` responses of the HTTP server, and the `User-Agent`
@@ -65,7 +72,7 @@ artifact.
   drift again. The `User-Agent` changes shape from `kobana-mcp-server/1.0.0` to
   `kobana-mcp-mailbox/1.1.1`.
 
-### Upgrading
+### When this is published
 
-If you are running **1.0.0 or 1.0.1**, upgrade. Those versions remain installable from
-npm but do not contain the fixes above.
+If you are running **1.0.2**, upgrade as soon as `1.1.1` appears on npm — that version
+does not contain the fixes above.
