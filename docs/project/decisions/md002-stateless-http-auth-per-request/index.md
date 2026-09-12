@@ -5,7 +5,7 @@
 **Date:** 2026-08-11
 **Origin:** PSQ-001. Recorded retroactively at Ariad adoption on 2026-09-12; the
 decision has been enforced in code since `688209d` and is documented in the root
-[CHANGELOG](../../../CHANGELOG.md).
+[CHANGELOG](../../../../CHANGELOG.md).
 
 ---
 

@@ -38,9 +38,16 @@ release path is the broken one:
 - `kadu` runs seven packages through `npx -y`, so it consumes **whatever is latest on
   npm** — meaning an unpublished fix reaches it never, and a bad publish reaches it
   instantly with no pin to fall back to.
-- Two packages (`admin`, `charge`) sit at `1.1.0` locally and `1.0.1` on npm. The
-  timeout fix merged on 2026-09-12 carries **no version bump at all**, so from every
-  consumer's point of view it has not happened.
+- **Nine of the ten packages are unpublished**, not two as first estimated: every
+  package except `financial` sits at `1.1.0` locally against `1.0.0`–`1.0.2` on npm.
+  The timeout fix merged on 2026-09-12 carries **no version bump at all**, so from
+  every consumer's point of view it has not happened either.
+- **A security fix has been live in the repository and absent from npm for a month.**
+  `1.1.0` is the version that carries the PSQ-001 migration to stateless HTTP
+  (`688209d`, 2026-08-11). Verified by unpacking the published tarballs: `admin`,
+  `payment`, `charge` and `transfer` at `1.0.1` still contain the SSE transport, the
+  `Math.random()` session id, and the documented `start:http` script that exposes
+  them. See [MD-006](../decisions/md006-publishing-is-a-security-obligation/index.md).
 
 That is why CV1 is release, not tests. CV2 and CV3 follow because a release path you
 cannot verify is only half a fix.

@@ -26,3 +26,4 @@ readers and leak internal structure.
 | [MD-003](md003-summary-endpoint-is-the-only-aggregation-authority/index.md) | Never recompute money totals client-side | 2026-08-24 | Active |
 | [MD-004](md004-no-branch-protection/index.md) | No branch protection on `main` for now | 2026-09-12 | Active |
 | [MD-005](md005-client-duplication-accepted/index.md) | The duplicated API client stays duplicated for now | 2026-09-12 | Active |
+| [MD-006](md006-publishing-is-a-security-obligation/index.md) | Publishing is the last step of a security fix, not packaging hygiene | 2026-09-12 | Active |

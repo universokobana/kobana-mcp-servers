@@ -25,9 +25,16 @@ the current state:
 
 Concrete drift at adoption time:
 
-- `mcp-admin` and `mcp-charge`: `1.1.0` local, `1.0.1` published.
+- **Nine of ten packages are unpublished.** Every package except `financial` is at
+  `1.1.0` locally against `1.0.0`–`1.0.2` on npm.
+- **`1.1.0` is the security release, and it never shipped.** Commit `688209d`
+  (2026-08-11) migrated `http-server.ts` to stateless Streamable HTTP for PSQ-001 and
+  bumped `1.0.1` → `1.1.0`. Unpacking the published tarballs confirms `admin`,
+  `payment`, `charge` and `transfer` at `1.0.1` still ship the SSE transport, the
+  `Math.random()` session id, and the `start:http` script the README documents.
+  **A month of exposure for anyone running a published package over HTTP.**
 - The timeout fence merged 2026-09-12 (`f4870e3`, `7822808`): **no version bump**, so
-  no consumer can receive it.
+  no consumer can receive it either.
 - `serverInfo.version` is hardcoded `1.0.0` in `server.ts` and twice in
   `http-server.ts`, plus the `User-Agent`, while `package.json` reads `1.2.0` —
   a consumer inspecting the handshake is told the wrong version.
@@ -39,6 +46,14 @@ Concrete drift at adoption time:
 | [CV1.DS1](cv1-ds1-version-truth-and-publish/index.md) | Version truth and first deliberate publish | Technical Story | One version authority per package, asserted; the merged timeout fence published and reaching both consumers | 🟢 Active |
 | CV1.DS2 | Release workflow on tags | Technical Story | `npm publish --provenance` driven by per-package tags from CI, not a laptop | ⚪ Candidate |
 | CV1.DS3 | Per-package changelogs | Technical Story | Each package documents its own versions; the root CHANGELOG stays repo-level as it declares | ⚪ Candidate |
+
+## What this CV is really about
+
+The first framing of this CV was "consumers cannot receive fixes", which sounded like
+a convenience problem. The tarball evidence reframes it: **an unpublished repository is
+a security liability**, because the fix exists, the advisory reasoning exists, and the
+vulnerable artifact is still the one people install. Publishing is not packaging
+hygiene — it is the last step of a security fix (MD-006).
 
 ## Done Condition
 
