@@ -33,7 +33,7 @@ does not block.
 
 | Code | Story | Type | Outcome | Status |
 |------|-------|------|---------|--------|
-| CV3.DS1 | CI workflow — `Checks` and `Tests` | Technical Story | Two jobs reporting on every PR and push, named to match the Kia convention so a future ruleset needs no rename. Typecheck is green across all packages today, so this lands green | ⚪ Candidate |
+| [CV3.DS1](cv3-ds1-ci-checks-and-tests/index.md) | CI workflow — `Checks` and `Tests` | Technical Story | Two jobs reporting on every PR and push, named to match the Kia convention so a future ruleset needs no rename. Typecheck is green across all packages today, so this lands green | 🟡 Planned — plan awaiting approval |
 | CV3.DS2 | Prettier, ESLint and the pre-push hook | Technical Story | One mechanical reformat commit, then formatting drift dies locally in seconds instead of in CI | ⚪ Candidate |
 | CV3.DS3 | Daily dependency audit, off the PR path | Technical Story | Advisories reported on a schedule, because a published advisory is not a function of anybody's diff | ⚪ Candidate |
 | CV3.DS4 | Lockfile and workspace consolidation | Technical Story | One root lockfile; every package inside `workspaces` or documented as deliberately outside | ⚪ Candidate |
