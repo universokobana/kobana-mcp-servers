@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getConfig } from './config.js';
 import { HelpCenterClient } from './api/client.js';
 import { allTools } from './tools/index.js';
+import { VERSION } from './version.js';
 function zodToJsonSchema(schema) {
     if (schema instanceof z.ZodObject) {
         const shape = schema.shape;
@@ -77,7 +78,7 @@ function zodToJsonSchemaProperty(schema) {
 export function createServer(config) {
     const server = new Server({
         name: 'kobana-mcp-help',
-        version: '1.0.0',
+        version: VERSION,
     }, {
         capabilities: {
             tools: {},

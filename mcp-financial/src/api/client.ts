@@ -1,5 +1,6 @@
 import { Config, DEFAULT_API_TIMEOUT_MS } from '../config.js';
 import { ApiError } from '../types/api.js';
+import { VERSION } from '../version.js';
 
 /** True for the abort raised by AbortSignal.timeout (TimeoutError in modern
  * undici; AbortError kept for older Node 18 runtimes). */
@@ -33,7 +34,7 @@ export class KobanaApiClient {
     const requestHeaders: Record<string, string> = {
       'Authorization': `Bearer ${this.accessToken}`,
       'Accept': 'application/json',
-      'User-Agent': 'kobana-mcp-server/1.0.0',
+      'User-Agent': `kobana-mcp-financial/${VERSION}`,
       // FormData bodies must not carry an explicit Content-Type: fetch
       // sets one itself (multipart/form-data; boundary=...) and a
       // hardcoded value here would omit the boundary and break parsing.

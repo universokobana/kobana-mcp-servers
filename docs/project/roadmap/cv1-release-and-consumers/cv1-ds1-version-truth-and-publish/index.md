@@ -2,7 +2,7 @@
 
 # CV1.DS1 — Version truth and the first deliberate publish
 
-**Status:** 🟡 Planned
+**Status:** 🟢 Active — implementation complete, **blocked on npm authentication**
 **Type:** Technical Story
 
 ---
@@ -66,6 +66,23 @@ Then the artifact contains the stateless HTTP transport and the timeout fence,
 - Consolidating lockfiles or the `workspaces` list (CV3.DS4).
 - A public security advisory — that is a **Navigator decision**, raised in
   [`plan.md`](plan.md).
+
+## Progress
+
+| Step | State |
+|---|---|
+| `src/version.ts` in all ten packages | ✅ done |
+| 37 hardcoded literals replaced | ✅ done — zero remain in `src/` |
+| Lockstep suite (first tests in the repository) | ✅ done — red first (14 failed), then 70 passed |
+| Typecheck + build all ten | ✅ done |
+| Version bumps (`financial` 1.2.1, nine × 1.1.1) | ✅ done — approved by the Navigator |
+| Per-package changelogs with the exposure statement | ✅ done — and `CHANGELOG.md` added to `files`, without which the disclosure would not ship |
+| `npm publish --dry-run` | ✅ done — versions and file lists verified |
+| **`npm publish`** | ⛔ **blocked** — `npm whoami` returns `ENEEDAUTH` |
+| Delete `kia-desktop`'s override, rebuild | ⛔ blocked — depends on the publish |
+
+Disclosure route: **plain changelog statement**, decided by the Navigator 2026-09-12
+(option (b) of the plan's open question). No public advisory.
 
 ## Validation
 

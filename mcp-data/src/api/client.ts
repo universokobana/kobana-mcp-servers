@@ -1,5 +1,6 @@
 import { Config, DEFAULT_API_TIMEOUT_MS } from '../config.js';
 import { ApiError } from '../types/api.js';
+import { VERSION } from '../version.js';
 
 /** True for the abort raised by AbortSignal.timeout (TimeoutError in modern
  * undici; AbortError kept for older Node 18 runtimes). */
@@ -33,7 +34,7 @@ export class KobanaApiClient {
       'Authorization': `Bearer ${this.accessToken}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'User-Agent': 'kobana-mcp-server/1.0.0',
+      'User-Agent': `kobana-mcp-data/${VERSION}`,
       ...headers,
     };
 

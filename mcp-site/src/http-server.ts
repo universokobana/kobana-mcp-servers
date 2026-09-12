@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server.js';
+import { VERSION } from './version.js';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
@@ -94,7 +95,7 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(
         JSON.stringify({
           name: 'kobana-mcp-site',
-          version: '1.0.0',
+          version: VERSION,
           description: 'MCP server for searching and reading Kobana website content',
           endpoints: {
             mcp: '/mcp',

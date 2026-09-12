@@ -1,6 +1,6 @@
 {
   "name": "kobana-mcp-help",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "MCP Server for Kobana Help Center - search and view help articles",
   "type": "module",
   "main": "dist/index.js",
@@ -10,7 +10,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc",
