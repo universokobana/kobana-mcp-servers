@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { getConfig, Config } from './config.js';
 import { HelpCenterClient } from './api/client.js';
 import { allTools, ToolDefinition } from './tools/index.js';
+import { VERSION } from './version.js';
 
 function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
   if (schema instanceof z.ZodObject) {
@@ -99,7 +100,7 @@ export function createServer(config?: Config): Server {
   const server = new Server(
     {
       name: 'kobana-mcp-help',
-      version: '1.0.0',
+      version: VERSION,
     },
     {
       capabilities: {

@@ -2,6 +2,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { allTools } from './tools/index.js';
+import { VERSION } from './version.js';
 function zodToJsonSchema(schema) {
     if (schema instanceof z.ZodObject) {
         const shape = schema.shape;
@@ -70,7 +71,7 @@ function zodToJsonSchema(schema) {
 export function createServer() {
     const server = new Server({
         name: 'kobana-mcp-site',
-        version: '1.0.0',
+        version: VERSION,
     }, {
         capabilities: {
             tools: {},

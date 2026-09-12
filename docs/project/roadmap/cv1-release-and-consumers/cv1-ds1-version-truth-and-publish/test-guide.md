@@ -111,4 +111,49 @@ grep -c 'AbortSignal.timeout' \
 
 ## Validation Evidence
 
-<Recorded after validation runs.>
+Recorded 2026-09-12. **Implementation complete; publish blocked.**
+
+### Automated
+
+- **Lockstep suite written red first.** Run against the stale/absent `dist/` before
+  rebuilding: **14 failed / 56 passed (70)**. After rebuilding: **70 passed**. The red
+  run is the proof the assertions bite; it was not contrived, the stale `dist/` was
+  genuinely there.
+- **Typecheck:** clean on all ten — after `npm ci` inside `mcp-site` (TD-010).
+- **Build:** all ten produce `dist/version.js`.
+
+### The single-authority property (DD1)
+
+Bumping the manifests alone moved the reported version with **no rebuild**, because
+`version.ts` reads `package.json` at runtime:
+
+```text
+serverInfo: {'name': 'kobana-mcp-financial', 'version': '1.2.1'}
+```
+
+User-Agent observed against a local server: `kobana-mcp-financial/1.2.0` before the
+bump, `kobana-mcp-financial/1.2.1` after — from the same build.
+
+### Pre-publish tarball inspection
+
+`npm pack` from the working tree, all ten unpacked and inspected:
+
+| | SSE | `Math.random` | stateless | `redirect:'error'` | `AbortSignal.timeout` |
+|---|---|---|---|---|---|
+| 8 API packages | 0 | 0 | 1 | 1 | 2 |
+| `help` | 0 | 0 | 1 | n/a (scraper client) | n/a |
+| `site` | 0 | 0 | 1 | n/a (no client) | n/a |
+
+Versions in the packed manifests: `financial` `1.2.1`, the other nine `1.1.1`.
+`CHANGELOG.md` present in every tarball — which required adding it to `files`, since
+otherwise the chosen disclosure route would have shipped to nobody.
+
+**Baseline for comparison, published `@1.0.1` (2026-09-12, before this story):**
+`SSE=5`, `Math.random=1`, `redirect:'error'=0`, `AbortSignal=0`.
+
+### Blocked
+
+- **Publish not executed:** `npm whoami` → `ENEEDAUTH`. The registry steps (step 6
+  onward) and the `kia-desktop` override removal remain outstanding.
+- Post-publish registry verification and the cross-repo step are therefore **not**
+  evidenced yet.

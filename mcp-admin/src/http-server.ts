@@ -4,6 +4,7 @@ import { createServer as createHttpServer, IncomingMessage, ServerResponse } fro
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server.js';
 import { getConfig, Config } from './config.js';
+import { VERSION } from './version.js';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
@@ -169,7 +170,7 @@ function handleHealth(_req: IncomingMessage, res: ServerResponse): void {
   res.end(JSON.stringify({
     status: 'healthy',
     server: 'kobana-mcp-admin',
-    version: '1.0.0',
+    version: VERSION,
     transport: 'streamable-http',
   }));
 }
@@ -178,7 +179,7 @@ function handleInfo(_req: IncomingMessage, res: ServerResponse): void {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({
     name: 'kobana-mcp-admin',
-    version: '1.0.0',
+    version: VERSION,
     description: 'MCP Server for Kobana Admin API v2 (users, subaccounts, connections, certificates)',
     endpoints: {
       mcp: '/mcp',

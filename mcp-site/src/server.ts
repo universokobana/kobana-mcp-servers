@@ -5,6 +5,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { allTools, type ToolDefinition } from './tools/index.js';
+import { VERSION } from './version.js';
 
 type JsonSchema = {
   type: string;
@@ -99,7 +100,7 @@ export function createServer(): Server {
   const server = new Server(
     {
       name: 'kobana-mcp-site',
-      version: '1.0.0',
+      version: VERSION,
     },
     {
       capabilities: {

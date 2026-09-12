@@ -3,6 +3,7 @@ import { createServer as createHttpServer } from 'http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server.js';
 import { getConfig } from './config.js';
+import { VERSION } from './version.js';
 const PORT = parseInt(process.env.PORT || '3001', 10);
 // Loopback by default. This is a local debugging server that will fall back to
 // the credentials in its own environment, so binding it to 0.0.0.0 would let
@@ -147,7 +148,7 @@ function handleHealth(_req, res) {
     res.end(JSON.stringify({
         status: 'healthy',
         server: 'kobana-mcp-mailbox',
-        version: '1.0.0',
+        version: VERSION,
         transport: 'streamable-http',
     }));
 }
@@ -155,7 +156,7 @@ function handleInfo(_req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
         name: 'kobana-mcp-mailbox',
-        version: '1.0.0',
+        version: VERSION,
         description: 'MCP Server for Kobana Mailbox API v2',
         endpoints: {
             mcp: '/mcp',

@@ -1,6 +1,6 @@
 {
   "name": "kobana-mcp-financial",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "MCP Server for Kobana Financial API v2 (financial accounts, balances, statement transactions)",
   "type": "module",
   "main": "dist/index.js",
@@ -10,7 +10,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc",
