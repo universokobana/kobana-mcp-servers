@@ -1,123 +1,27 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+**The workflow authority for this repository is [`AGENTS.md`](AGENTS.md). Read it.**
 
-## Project Overview
+This file exists only so that Claude Code finds the same instructions Pi and Codex
+read. It is deliberately a pointer and not a copy: two files describing one workflow
+drift, and the drifting one is always the one you are reading.
 
-Kobana MCP Servers is a monorepo containing 8 Model Context Protocol (MCP) servers providing AI-native access to the Kobana financial automation API v2. Each server handles a specific domain: admin, charge, data, edi, financial, mailbox, payment, and transfer.
+## Start here
 
-## Commands
+1. [`AGENTS.md`](AGENTS.md) — commands, architecture, integration gates, hard stops
+2. [Engineering principles](docs/project/engineering-principles.md) — including the
+   [Definition of Done](docs/project/engineering-principles.md#9-definition-of-done)
+3. [Development guide](docs/process/development-guide.md) — the Ariad lifecycle
+4. [Roadmap](docs/project/roadmap/index.md) · [Decisions](docs/project/decisions/index.md) · [Debt ledger](docs/project/roadmap/technical-debt-ledger.md)
 
-```bash
-# Build all packages
-npm run build
+## Three things worth knowing before you touch anything
 
-# Build single package
-cd mcp-financial && npm run build
-
-# Development with watch mode
-cd mcp-financial && npm run dev
-
-# Run stdio MCP server (for Claude Desktop)
-KOBANA_ACCESS_TOKEN=token npx kobana-mcp-financial
-
-# Run HTTP server (single-namespace, local debugging)
-cd mcp-financial && npm run start:http
-
-# Clean build artifacts
-cd mcp-financial && npm run clean
-```
-
-## Architecture
-
-### Package Structure
-
-Each MCP package (`mcp-*/`) follows this structure:
-- `src/index.ts` - Stdio transport entry point (with shebang for CLI)
-- `src/http-server.ts` - Streamable HTTP transport entry point
-- `src/server.ts` - Core MCP server with tool registration
-- `src/config.ts` - Environment configuration loader
-- `src/api/client.ts` - `KobanaApiClient` HTTP client with error handling
-- `src/api/[resource].ts` - API methods grouped by resource
-- `src/tools/[resource].ts` - Tool definitions with Zod schemas
-- `src/types/schemas.ts` - Zod validation schemas
-- `src/types/api.ts` - TypeScript interfaces
-
-### Tool Definition Pattern
-
-Tools follow a consistent structure:
-```typescript
-export const myTool: ToolDefinition = {
-  name: '[action]_[namespace]_[resource]',  // e.g., list_financial_accounts
-  description: 'Tool description',
-  inputSchema: zodSchema,
-  handler: async (client, args) => {
-    try {
-      const params = zodSchema.parse(args);
-      const result = await apiMethod(client, params);
-      return { success: true, data: result };
-    } catch (error) {
-      return { success: false, ...formatError(error) };
-    }
-  },
-};
-```
-
-### Zod to JSON Schema Conversion
-
-Each server implements `zodToJsonSchema()` in `server.ts` to convert Zod schemas to JSON Schema for MCP protocol compatibility. This function handles objects, strings, numbers, booleans, enums, arrays, and records.
-
-### Transport Modes
-
-1. **Stdio** (default): For Claude Desktop integration via `index.ts`
-2. **Streamable HTTP**: Per-package single-namespace HTTP server via
-   `http-server.ts` (`POST /mcp`, `/health`, `/`) — useful for local debugging.
-
-   The HTTP server is **stateless**: each request builds a fresh `Server` +
-   `StreamableHTTPServerTransport` (`sessionIdGenerator: undefined`) and is
-   authenticated on its own. There is no session map and no session identifier,
-   which is what keeps a third party from reusing another caller's credentials.
-   When touching `http-server.ts`, keep all three of these properties:
-
-   - **Auth per request.** Never hoist credential resolution out of the
-     per-request path or cache a `Config` between requests.
-   - **Loopback bind.** `HOST` defaults to `127.0.0.1`. This server falls back
-     to `KOBANA_ACCESS_TOKEN` from its own environment, so binding it to
-     `0.0.0.0` hands that token to anything routable to the host.
-   - **Origin validation.** Requests carrying an `Origin` header are rejected
-     with 403 unless the origin is listed in `MCP_ALLOWED_ORIGINS` (empty by
-     default). Without this, any page the developer visits can reach the port
-     from their browser. Never reintroduce `Access-Control-Allow-Origin: *`.
-
-   The legacy SSE transport (`/sse` + `/messages?sessionId=…`) was removed;
-   both paths now answer 410. `SSEServerTransport` is deprecated in the SDK.
-
-## Configuration
-
-| Variable | Required | Default |
-|----------|----------|---------|
-| `KOBANA_ACCESS_TOKEN` | Yes | - |
-| `KOBANA_API_URL` | No | `https://api.kobana.com.br` |
-| `PORT` | No | 3000 |
-| `HOST` | No | `127.0.0.1` (HTTP mode; see Transport Modes before changing) |
-| `MCP_ALLOWED_ORIGINS` | No | empty — no browser origin is trusted (HTTP mode) |
-
-Sandbox environment: `https://api-sandbox.kobana.com.br`
-
-## Key Conventions
-
-- **Tool naming**: `[verb]_[namespace]_[resource]` (e.g., `create_financial_account`)
-- **API paths**: `/v2/[namespace]/[resource]`
-- **Error responses**: Always `{ success: false, error: string, details?: unknown }`
-- **Success responses**: Always `{ success: true, data: unknown }`
-- All inputs validated with Zod before API calls
-- Bearer token authentication via `Authorization` header
-- `X-Idempotency-Key` header supported for POST operations
-
-## Adding New Tools
-
-1. Add Zod schema in `src/types/schemas.ts`
-2. Add API method in `src/api/[resource].ts`
-3. Create tool definition in `src/tools/[resource].ts`
-4. Export tool from `src/tools/index.ts`
-5. Tool is automatically registered via the tools array in `server.ts`
+- **There are no tests and no CI.** A green build is not a verified change. The gates
+  in [`AGENTS.md`](AGENTS.md#gates-before-every-integration) are the only ones that
+  exist.
+- **Two consumers depend on these packages, and one has no pin.** `kadu` runs seven of
+  them through `npx -y`, so a publish is live immediately with nothing to roll back to.
+  Merged is not delivered.
+- **Tool names and descriptions are behavior.** 117 of the 122 tools in
+  `kia-desktop`'s eval field catalog come from here, verbatim. Editing a description is
+  not a copy tweak.
