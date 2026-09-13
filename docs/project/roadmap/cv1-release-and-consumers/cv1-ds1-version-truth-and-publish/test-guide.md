@@ -8,8 +8,13 @@
 # 1. The lockstep test — red before the fix, green after
 npm test
 
-# 2. Typecheck every package, including the two outside `workspaces` (TD-006)
-for p in mcp-*/; do (cd "$p" && ../node_modules/.bin/tsc --noEmit) || echo "FAILED: $p"; done
+# 2. Typecheck every package, including the two outside `workspaces` (TD-006).
+#    Fail-hard — a bare `|| echo` exits 0 and passes on a broken package.
+failed=0
+for p in mcp-*/; do
+  (cd "$p" && ../node_modules/.bin/tsc --noEmit) || { echo "FAILED: $p"; failed=1; }
+done
+[ "$failed" -eq 0 ] || exit 1
 
 # 3. Build
 npm run build

@@ -28,6 +28,27 @@ Technical Story: no consumer-visible behavior changes.
 | The repository is **public** | `gh repo view --json visibility` → `PUBLIC` |
 | vitest 4 supports Node `^20 \|\| ^22 \|\| >=24` | `node_modules/vitest/package.json` `engines` |
 | The packages promise Node `>=18` | `engines` in every `mcp-*/package.json` |
+| Local Node is **25.9.0 from Homebrew**, not mise-managed | `readlink -f $(which node)` → `/opt/homebrew/Cellar/node/25.9.0_2/…`; no `.nvmrc`/`.node-version` exists |
+
+### Clean-clone rehearsal (2026-09-12, after panel review)
+
+The first draft asserted "lands green on the first run" from a working tree that already
+had `node_modules` everywhere. The devops review called that a memory rather than a fact,
+so the exact recipe was rehearsed in a **fresh clone** of this branch — no `node_modules`,
+nothing warm:
+
+| Step | Result |
+|---|---|
+| root `npm ci` | ✅ |
+| `mcp-help` `npm ci` — **never exercised anywhere before** | ✅ exit 0 (feared stale lockfile did not materialise) |
+| `mcp-site` `npm ci` | ✅ exit 0 |
+| typecheck × 10, fail-hard form | ✅ all ten clean |
+| build × 10 | ✅ |
+| `npm test` | ✅ 90 passed |
+| `git diff -- '*/dist/'` after a clean build | ✅ **0 files** — the tracked artifacts are currently in sync with `src/` |
+
+So green-on-arrival is now verified, and the last row makes DD8 viable today rather than
+aspirational.
 
 **Risks:**
 
@@ -38,6 +59,11 @@ Technical Story: no consumer-visible behavior changes.
    `npm ci` + `npm run build` skips `mcp-help`/`mcp-site` entirely, so their breakage
    would pass silently — worse than red.
 3. **Self-hosted runners would be a security mistake here.** See DD1.
+4. **A gate that cannot fail.** The first draft of the test guide carried
+   `... || echo "FAILED: $p"` as "exactly what the workflow will run". `echo` returns 0, so
+   the loop exits 0 and the step passes **on a broken package**. Caught by the QA review
+   before it reached a workflow file; the fail-hard form is now specified in DD7 and used
+   in the guide.
 
 ## Scope / Non-Goals
 
@@ -96,6 +122,42 @@ Taking the third. Smuggling a supported-runtime change into a workflow story wou
 decision that deserves its own record. Recorded as new debt, with the recommendation that
 `engines` be settled first and the CI matrix follow that decision rather than pre-empt it.
 
+**DD7 — The workflow's non-obvious hygiene, specified rather than left to whoever types the
+YAML.** All of these came out of the panel review:
+
+- **The typecheck loop must fail hard.** A collecting flag and an explicit `exit 1`, never
+  `|| echo`. This is the single most important line in the workflow: it is the difference
+  between a gate and a decoration.
+- **Action references pinned to a major tag** (`actions/checkout@v5`, `actions/setup-node@v5`),
+  matching `kia-backend`'s practice. A floating reference on a public repository is supply
+  chain the maintainer does not control.
+- **`timeout-minutes` on both jobs.** The default is six hours; a hung `npm ci` should not
+  hold a runner that long. 15 is generous for a job whose real work is ~2 minutes.
+- **`concurrency` group per ref, `cancel-in-progress` for pull requests only.** A force-push
+  to a PR branch should cancel the stale run; a push to `main` should not cancel its own
+  history.
+- **`.nvmrc` holding `24`**, consumed by `setup-node`'s `node-version-file`, so the version
+  lives in one place instead of inside the YAML. Node 24 is the active LTS and is inside
+  vitest's supported range.
+
+  *Named consequence:* local Node here is **25.9.0 from Homebrew**, which `.nvmrc` does not
+  govern — so this does **not** silently switch the dev shell, and it does **not** eliminate
+  the 25-vs-24 drift. What it does is make the drift visible and the expectation explicit,
+  which is what turns "green locally, red in CI" from mysterious into diagnosable. Pinning
+  the version inline in the workflow instead would work equally well and touch nothing else;
+  `.nvmrc` is preferred only because contributors and CI then read the same file.
+
+**DD8 — Guard the tracked `dist/` against drift, with one line.** Three packages commit their
+built output ([TD-013](../../technical-debt-ledger.md)). CI checks those artifacts out, builds
+over them, and tests the fresh build — so a `src/` change committed without a rebuild would
+leave `main` carrying a stale artifact that nothing flags. `git diff --exit-code -- '*/dist/'`
+after the build closes it.
+
+Verified viable: the clean-clone rehearsal shows **0 changed files** after a full build, so
+this lands green rather than immediately red. The step is annotated to be **deleted** when
+TD-013 untracks those directories — at which point it becomes meaningless, not merely
+redundant.
+
 **DD6 — Cache keyed on every lockfile.** `cache-dependency-path` lists the root lockfile
 plus all nine per-package ones, so a change in any of them invalidates correctly. The nine
 lockfiles are themselves TD-005; the cache key should collapse to one line when that is
@@ -103,15 +165,23 @@ fixed, and the workflow says so.
 
 ## Implementation Approach
 
-1. `.github/workflows/ci.yml` — the two jobs, with comments carrying the *why* for DD1,
-   DD4 and DD5, since those are the non-obvious ones.
-2. A status badge in `README.md`.
-3. Push the branch, open the pull request, and confirm both checks run and pass.
-4. **Verify the gate fails.** Break typecheck in one package, confirm `Checks` red; revert.
-   Break one assertion, confirm `Tests` red; revert. Do this on the story branch so the
-   evidence is in the pull request's own history.
-5. Confirm both checks also report on the merge commit to `main` (DD3).
-6. Record the Node-18 conflict in the debt ledger.
+1. `.nvmrc` containing `24` (DD7).
+2. `.github/workflows/ci.yml` — the two jobs, with comments carrying the *why* for DD1,
+   DD4, DD5 and DD8, since those are the non-obvious ones. Fail-hard typecheck loop.
+3. A status badge in `README.md`, with a line next to it saying **what the gate covers** —
+   typecheck, build, and version-lockstep assertions — and what it does not: there is no
+   behavioral coverage until [CV2](../../cv2-test-infrastructure/index.md). A bare
+   "CI passing" badge on a public repository reads as "it works" to a stranger, and today
+   that would be an overclaim.
+4. Push the branch, open the pull request, confirm both checks run and pass.
+5. **Verify the gate fails — on a throwaway branch, not this one.** Three deliberate breaks,
+   each confirmed red, captured as **run URLs** in the test guide. Rationale: this repository
+   merges by rebase, so break-and-revert commits on the story branch would land on `main`
+   permanently and leave a future bisect sitting on a commit that is deliberately broken.
+   The evidence is worth keeping; its location is not. The throwaway branch is deleted after
+   the URLs are recorded.
+6. Confirm both checks also report on the merge commit to `main` (DD3).
+7. Record the Node-18 conflict in the debt ledger.
 
 ## Test Strategy
 
@@ -136,3 +206,15 @@ Two points worth an explicit yes or no:
    would pause this story.
 2. **DD1** — GitHub-hosted runners, deliberately diverging from `kia-backend`'s
    self-hosted setup, because this repository is public.
+
+Both were reviewed by the devops-engineer and quality-assurance lenses on 2026-09-12 and
+**both lenses converged on them as drafted**. The review's seven objections are resolved in
+this revision: the fail-hard loop (DD7) and the deliberate-red location (step 5) were the
+two that mattered; `.nvmrc`, pinned actions, `timeout-minutes` and `concurrency` are DD7;
+the `mcp-help` probe and the badge wording are in the guide and step 3; the tracked-`dist/`
+question is answered by DD8 rather than deferred.
+
+One residual item needs a decision rather than a fix: **`.nvmrc` versus an inline
+`node-version`** (DD7). `.nvmrc` is preferred here, and the consequence is named — it does
+not govern this machine's Homebrew Node, so it documents the expectation without changing
+the dev shell.

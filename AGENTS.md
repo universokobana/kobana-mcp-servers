@@ -51,8 +51,13 @@ cd mcp-financial && npm run clean
 # Typecheck one package (no root script; there is no CI to catch this for you)
 cd mcp-financial && ../node_modules/.bin/tsc --noEmit
 
-# Typecheck every package, including the two outside workspaces
-for p in mcp-*/; do (cd "$p" && ../node_modules/.bin/tsc --noEmit) || echo "FAILED: $p"; done
+# Typecheck every package, including the two outside workspaces.
+# Fail-hard: `|| echo` alone would return 0 and report success on a broken package.
+failed=0
+for p in mcp-*/; do
+  (cd "$p" && ../node_modules/.bin/tsc --noEmit) || { echo "FAILED: $p"; failed=1; }
+done
+[ "$failed" -eq 0 ] || echo "TYPECHECK RED"
 
 # Run a stdio MCP server
 KOBANA_ACCESS_TOKEN=token npx kobana-mcp-financial
@@ -70,9 +75,20 @@ Do not mistake a green build for a verified change.
 There is no CI and no branch protection (MD-004). **These are the only gate.**
 
 ```bash
-for p in mcp-*/; do (cd "$p" && ../node_modules/.bin/tsc --noEmit) || echo "FAILED: $p"; done
+# Fail-hard typecheck across all ten. A bare `|| echo` exits 0 — it reports a
+# failure and then passes anyway, which is how a gate becomes decoration.
+failed=0
+for p in mcp-*/; do
+  (cd "$p" && ../node_modules/.bin/tsc --noEmit) || { echo "FAILED: $p"; failed=1; }
+done
+[ "$failed" -eq 0 ] || exit 1
+
 npm run build
-npm test   # once CV2 lands
+(cd mcp-help && npm run build)   # outside `workspaces` — root build skips it (TD-006)
+(cd mcp-site && npm run build)   # needs its own `npm ci` first (TD-010)
+
+npm test                          # needs dist/ from the builds above
+git diff --exit-code -- '*/dist/' # three packages track their dist/ (TD-013)
 ```
 
 Run them before integrating, not after. `main` stays releasable at every integration.

@@ -59,13 +59,21 @@ Then `Tests` fails
 
 ## Scope
 
-- One workflow, `.github/workflows/ci.yml`, with jobs named exactly `Checks` and `Tests`.
+- One workflow, `.github/workflows/ci.yml`, with jobs named exactly `Checks` and `Tests`,
+  on GitHub-hosted runners with pinned action majors, `timeout-minutes` and a `concurrency`
+  group.
 - Triggers: `pull_request` and `push` to `main`.
 - Coverage of **all ten** packages, including `mcp-help` and `mcp-site`, which sit outside
   `workspaces` and need their own install
   ([TD-006](../../technical-debt-ledger.md), [TD-010](../../technical-debt-ledger.md)).
+- A **fail-hard** typecheck loop — the review caught the first draft carrying a form that
+  could not fail.
+- A drift guard on the three packages that commit their `dist/`
+  ([TD-013](../../technical-debt-ledger.md)), to be deleted when those are untracked.
+- `.nvmrc` pinning Node 24, consumed by `setup-node`.
 - Dependency caching keyed on every lockfile in the repository.
-- A `README` badge, so the gate is visible without opening the Actions tab.
+- A `README` badge **plus a line naming what the gate covers**, since green currently means
+  typecheck, build and version-lockstep — not that the packages work.
 
 ## Out Of Scope
 
@@ -80,10 +88,22 @@ Then `Tests` fails
   and records it as debt; changing `engines` or deleting the Node 18 branch is a
   compatibility decision, not a CI decision.
 
+## Review
+
+The plan was reviewed by the **devops-engineer** and **quality-assurance** lenses on
+2026-09-12. Both converged on DD1 and DD5; seven objections were raised and are resolved in
+the current revision. The two that mattered:
+
+- a typecheck loop that **could not fail** (`|| echo` swallows the exit code) — caught
+  before it reached a workflow file;
+- "lands green on the first run" being a **memory, not a fact** — now verified by a
+  clean-clone rehearsal, which also cleared the suspected stale lockfile in `mcp-help`.
+
 ## Validation
 
 `Checks` and `Tests` both green on the pull request that introduces them, and both
-reporting on the subsequent push to `main`. Then a deliberate break of each, verified red,
-and reverted — a gate nobody has seen fail is not a verified gate.
+reporting on the subsequent push to `main`. Then four deliberate breaks, each verified red —
+on a **throwaway branch**, captured as run URLs, so that rebase-merging this story does not
+put deliberately broken commits into `main`'s permanent history.
 
 See [`test-guide.md`](test-guide.md).

@@ -206,14 +206,25 @@ Beyond those, these are hard stops in this repository — stop and ask before:
 There is no CI today and no branch protection (MD-004), so **these are the only gate**:
 
 ```bash
-# Typecheck every package (no root script covers mcp-help / mcp-site — TD-006)
-for p in mcp-*/; do (cd "$p" && ../node_modules/.bin/tsc --noEmit) || echo "FAILED: $p"; done
+# Typecheck every package (no root script covers mcp-help / mcp-site — TD-006).
+# Fail-hard on purpose: `... || echo "FAILED"` returns 0, so the loop would
+# announce a failure and then exit successfully — a gate that cannot fail.
+failed=0
+for p in mcp-*/; do
+  (cd "$p" && ../node_modules/.bin/tsc --noEmit) || { echo "FAILED: $p"; failed=1; }
+done
+[ "$failed" -eq 0 ] || exit 1
 
-# Build the workspace packages
+# Build — the root script covers the eight workspaces only
 npm run build
+(cd mcp-help && npm run build)
+(cd mcp-site && npm run build)   # requires its own `npm ci` first (TD-010)
 
-# Tests — once CV2 lands
+# Tests (assert on dist/, so they need the builds above)
 npm test
+
+# Three packages track their built dist/ (TD-013) — it must not drift
+git diff --exit-code -- '*/dist/'
 ```
 
 Running them locally is the discipline, not a formality. When CV3 lands, `Checks` and
