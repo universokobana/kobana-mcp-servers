@@ -44,7 +44,7 @@ export const listPaymentTaxesTool: ToolDefinition = {
 
 export const createPaymentTaxTool: ToolDefinition = {
   name: 'create_payment_tax',
-  description: 'Create a new tax payment. Requires the amount, financial account UID, barcode/payment line, and tax kind (itbi, icms, iss, iptu, fgts, or dare). Optionally schedule for a future date.',
+  description: 'Create a new tax payment, with amount in cents as an integer. Requires the amount, financial account UID, barcode/payment line, and tax kind (itbi, icms, iss, iptu, fgts, or dare). Optionally schedule for a future date.',
   inputSchema: createTaxSchema,
   handler: async (client, args) => {
     try {

@@ -10,7 +10,7 @@ export const paginationSchema = z.object({
 // Bank Billet Schemas
 
 export const createBankBilletSchema = z.object({
-  amount: z.number().positive().describe('Amount in BRL (e.g., 120.99)'),
+  amount: z.number().int().positive().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   financial_account_uid: z.string().describe('UID of the source financial account'),
   code: z.string().describe('Barcode or payment slip line (linha digitavel)'),
   scheduled_to: z.string().optional().describe('Scheduled payment date (YYYY-MM-DD format)'),
@@ -30,7 +30,7 @@ export const getBankBilletSchema = z.object({
 export const createPixSchema = z.object({
   financial_account_uid: z.string().describe('UID of the source financial account'),
   qrcode: z.string().describe('Pix QR Code (copia e cola)'),
-  amount: z.number().positive().optional().describe('Amount in BRL. Optional for immediate or due date QR codes.'),
+  amount: z.number().int().positive().optional().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   scheduled_to: z.string().optional().describe('Scheduled payment date (YYYY-MM-DD format)'),
   external_id: z.string().optional().describe('External ID in your system for internal tracking'),
   custom_data: z.record(z.unknown()).optional().describe('Custom JSON data for your use'),
@@ -47,7 +47,7 @@ export const getPixSchema = z.object({
 // DARF Schemas
 
 export const createDarfSchema = z.object({
-  amount: z.number().positive().describe('Amount in BRL (e.g., 120.99)'),
+  amount: z.number().int().positive().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   financial_account_uid: z.string().describe('UID of the source financial account'),
   calculation_date: z.string().optional().describe('End date of the calculation period (YYYY-MM-DD format)'),
   expire_at: z.string().optional().describe('Due date (YYYY-MM-DD format)'),
@@ -67,7 +67,7 @@ export const getDarfSchema = z.object({
 export const taxKindSchema = z.enum(['itbi', 'icms', 'iss', 'iptu', 'fgts', 'dare']).describe('Type of tax');
 
 export const createTaxSchema = z.object({
-  amount: z.number().positive().describe('Amount in BRL (e.g., 120.99)'),
+  amount: z.number().int().positive().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   financial_account_uid: z.string().describe('UID of the source financial account'),
   code: z.string().describe('Barcode or payment slip line (linha digitavel) of the tax'),
   kind: taxKindSchema,
@@ -86,7 +86,7 @@ export const getTaxSchema = z.object({
 // Utility Schemas
 
 export const createUtilitySchema = z.object({
-  amount: z.number().positive().describe('Amount in BRL (e.g., 120.99)'),
+  amount: z.number().int().positive().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   financial_account_uid: z.string().describe('UID of the source financial account'),
   code: z.string().describe('Barcode or payment slip line (linha digitavel)'),
   scheduled_to: z.string().optional().describe('Scheduled payment date (YYYY-MM-DD format)'),
@@ -120,7 +120,7 @@ export const reproveBatchSchema = z.object({
 // Bank Billet Batch Schemas
 
 const batchBankBilletPaymentNewSchema = z.object({
-  amount: z.number().positive().describe('Amount in BRL'),
+  amount: z.number().int().positive().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   code: z.string().describe('Barcode or payment slip line'),
   scheduled_to: z.string().optional().describe('Scheduled payment date (YYYY-MM-DD format)'),
   external_id: z.string().optional().describe('External ID in your system'),
@@ -146,7 +146,7 @@ export const createBankBilletBatchSchema = z.object({
 
 const batchPixPaymentNewSchema = z.object({
   qrcode: z.string().describe('Pix QR Code (copia e cola)'),
-  amount: z.number().positive().optional().describe('Amount in BRL'),
+  amount: z.number().int().positive().optional().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   scheduled_to: z.string().optional().describe('Scheduled payment date (YYYY-MM-DD format)'),
   external_id: z.string().optional().describe('External ID in your system'),
   custom_data: z.record(z.unknown()).optional().describe('Custom JSON data'),
@@ -171,7 +171,7 @@ export const createPixBatchSchema = z.object({
 // DARF Batch Schemas
 
 const batchDarfPaymentNewSchema = z.object({
-  amount: z.number().positive().describe('Amount in BRL'),
+  amount: z.number().int().positive().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   calculation_date: z.string().optional().describe('End date of calculation period'),
   expire_at: z.string().optional().describe('Due date'),
   reference_number: z.string().optional().describe('DARF reference number'),
@@ -196,7 +196,7 @@ export const createDarfBatchSchema = z.object({
 // Tax Batch Schemas
 
 const batchTaxPaymentNewSchema = z.object({
-  amount: z.number().positive().describe('Amount in BRL'),
+  amount: z.number().int().positive().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   code: z.string().describe('Barcode or payment slip line'),
   kind: taxKindSchema,
   scheduled_to: z.string().optional().describe('Scheduled payment date (YYYY-MM-DD format)'),
@@ -222,7 +222,7 @@ export const createTaxBatchSchema = z.object({
 // Utility Batch Schemas
 
 const batchUtilityPaymentNewSchema = z.object({
-  amount: z.number().positive().describe('Amount in BRL'),
+  amount: z.number().int().positive().describe('Amount in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   code: z.string().describe('Barcode or payment slip line'),
   scheduled_to: z.string().optional().describe('Scheduled payment date (YYYY-MM-DD format)'),
   external_id: z.string().optional().describe('External ID in your system'),

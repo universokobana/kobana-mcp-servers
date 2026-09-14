@@ -8,6 +8,46 @@ milestones.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Changed
+
+- **Money amounts are stated in cents, and said so where a model can read it.**
+  The Kobana platform stores money in **cents**; these tools described `amount` as
+  `'Amount in BRL (e.g., 120.99)'` in six transfer fields. A model following that
+  description under-pays by a factor of 100, and the consumer that surfaces the
+  value for human approval shows the number verbatim — so the confirmation screen
+  agrees with the mistake instead of catching it.
+
+  It is not hypothetical. On 2026-09-13, in `kia-desktop`, three water bills of
+  R$ 980,00 were sent as `amount: 980`, registered by Kobana as **R$ 9,80 each**,
+  and approved by a person reading `VALOR 980` as reais.
+
+  Two changes, because consumers read two different things:
+
+  - every `amount` now describes itself as cents, with an integer example
+    (`1000 = R$ 10,00`) — for consumers that hand a model the full JSON schema;
+  - every money tool's **first sentence** names the unit — for consumers that
+    show a model a tool summary rather than a schema. `kia-desktop` is one: since
+    its D121 it serves `firstSentence(description)` plus an argument digest of
+    `name:type` pairs, so a parameter description never reaches the model there.
+    Measured over that path: 0/9 amounts correct with the unit only in the
+    parameter, 18/18 with it in the first sentence.
+
+- **`amount` now validates as an integer.** A fractional cent does not exist, so
+  the server refuses `120.99` instead of letting the platform decide what it
+  means. **This is a behaviour change for any caller that was sending reais:** it
+  now gets a validation error where it previously got a payment worth a hundredth
+  of the intended value. That is the intended outcome — a loud failure replacing a
+  silent one — but it is a break, and callers that followed the old description
+  need to convert before upgrading.
+
+### Added
+
+- `tests/unit/money-unit-contract.test.ts` — the unit must be stated in both
+  places, in `src/` and in the built `dist/`, and may never say BRL again. A tool
+  description is behaviour (principles §6), and this is the guard that keeps a
+  future copy edit from quietly restoring the defect.
 
 ## 1.1.1 — Unreleased
 

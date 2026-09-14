@@ -44,7 +44,7 @@ export const listPaymentPixTool: ToolDefinition = {
 
 export const createPaymentPixTool: ToolDefinition = {
   name: 'create_payment_pix',
-  description: 'Create a new Pix payment. Requires the financial account UID and QR code (copia e cola). Amount is optional for immediate or due date QR codes.',
+  description: 'Create a new Pix payment, with amount in cents as an integer. Requires the financial account UID and QR code (copia e cola). Amount is optional for immediate or due date QR codes.',
   inputSchema: createPixSchema,
   handler: async (client, args) => {
     try {

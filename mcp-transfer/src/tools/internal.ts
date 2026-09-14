@@ -45,7 +45,7 @@ export const listTransferInternalTool: ToolDefinition = {
 
 export const createTransferInternalTool: ToolDefinition = {
   name: 'create_transfer_internal',
-  description: 'Create a new internal transfer between accounts. Requires amount, financial account UID, and internal account data (agency and account numbers). The beneficiary information is recommended.',
+  description: 'Create a new internal transfer between accounts, with amount in cents as an integer. Requires amount, financial account UID, and internal account data (agency and account numbers). The beneficiary information is recommended.',
   inputSchema: createTransferInternalSchema,
   handler: async (client, args) => {
     try {
@@ -75,7 +75,7 @@ export const getTransferInternalTool: ToolDefinition = {
 
 export const createTransferInternalBatchTool: ToolDefinition = {
   name: 'create_transfer_internal_batch',
-  description: 'Create a batch of internal transfers. Allows creating multiple transfers at once or adding existing transfers to a batch by their UIDs. All transfers in a batch are processed together.',
+  description: 'Create a batch of internal transfers, with each amount in cents as an integer. Allows creating multiple transfers at once or adding existing transfers to a batch by their UIDs. All transfers in a batch are processed together.',
   inputSchema: createTransferInternalBatchSchema,
   handler: async (client, args) => {
     try {

@@ -44,7 +44,7 @@ export const listPaymentDarfsTool: ToolDefinition = {
 
 export const createPaymentDarfTool: ToolDefinition = {
   name: 'create_payment_darf',
-  description: 'Create a new DARF payment. Requires the amount and financial account UID. Optionally include calculation date, due date, reference number, taxpayer number, and tax code.',
+  description: 'Create a new DARF payment, with amount in cents as an integer. Requires the amount and financial account UID. Optionally include calculation date, due date, reference number, taxpayer number, and tax code.',
   inputSchema: createDarfSchema,
   handler: async (client, args) => {
     try {

@@ -44,7 +44,7 @@ export const listPaymentUtilitiesTool: ToolDefinition = {
 
 export const createPaymentUtilityTool: ToolDefinition = {
   name: 'create_payment_utility',
-  description: 'Create a new utility bill payment. Requires the amount, financial account UID, and barcode/payment line. Optionally schedule for a future date.',
+  description: 'Create a new utility bill payment, with amount in cents as an integer. Requires the amount, financial account UID, and barcode/payment line. Optionally schedule for a future date.',
   inputSchema: createUtilitySchema,
   handler: async (client, args) => {
     try {

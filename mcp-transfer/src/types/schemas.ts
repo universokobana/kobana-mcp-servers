@@ -71,7 +71,7 @@ export const listTransferPixSchema = paginationSchema.extend({
 });
 
 export const createTransferPixSchema = z.object({
-  amount: z.number().positive().describe('Amount to transfer (e.g., 100.50)'),
+  amount: z.number().int().positive().describe('Amount to transfer, in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   financial_account_uid: z.string().describe('UID of the source financial account'),
   type: z.enum(['key', 'bank_account']).describe('Type of Pix transfer: key or bank_account'),
   scheduled_to: z.string().optional().describe('Scheduled date for the transfer (ISO 8601 format, e.g., 2024-12-31)'),
@@ -107,7 +107,7 @@ export const listTransferTedSchema = paginationSchema.extend({
 });
 
 export const createTransferTedSchema = z.object({
-  amount: z.number().positive().describe('Amount to transfer (e.g., 100.50)'),
+  amount: z.number().int().positive().describe('Amount to transfer, in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   financial_account_uid: z.string().describe('UID of the source financial account'),
   scheduled_to: z.string().optional().describe('Scheduled date for the transfer (ISO 8601 format, e.g., 2024-12-31)'),
   transfer_purpose: z.string().optional().describe('Transfer purpose code (e.g., "98" for miscellaneous payments)'),
@@ -139,7 +139,7 @@ export const listTransferInternalSchema = paginationSchema.extend({
 });
 
 export const createTransferInternalSchema = z.object({
-  amount: z.number().positive().describe('Amount to transfer (e.g., 100.50)'),
+  amount: z.number().int().positive().describe('Amount to transfer, in cents, as an integer (e.g., 1000 = R$ 10,00)'),
   financial_account_uid: z.string().describe('UID of the source financial account'),
   scheduled_to: z.string().optional().describe('Scheduled date for the transfer (ISO 8601 format, e.g., 2024-12-31)'),
   transfer_purpose: z.string().optional().describe('Transfer purpose code (e.g., "98" for miscellaneous payments)'),
@@ -164,7 +164,7 @@ export const createTransferPixBatchSchema = z.object({
         uid: z.string().describe('UID of an existing transfer to add to the batch'),
       }),
       z.object({
-        amount: z.number().positive().describe('Amount to transfer'),
+        amount: z.number().int().positive().describe('Amount to transfer, in cents, as an integer (e.g., 1000 = R$ 10,00)'),
         financial_account_uid: z.string().describe('UID of the source financial account'),
         type: z.enum(['key', 'bank_account']).describe('Type of Pix transfer'),
         scheduled_to: z.string().optional().describe('Scheduled date'),
@@ -190,7 +190,7 @@ export const createTransferTedBatchSchema = z.object({
         uid: z.string().describe('UID of an existing transfer to add to the batch'),
       }),
       z.object({
-        amount: z.number().positive().describe('Amount to transfer'),
+        amount: z.number().int().positive().describe('Amount to transfer, in cents, as an integer (e.g., 1000 = R$ 10,00)'),
         financial_account_uid: z.string().describe('UID of the source financial account'),
         scheduled_to: z.string().optional().describe('Scheduled date'),
         transfer_purpose: z.string().optional().describe('Transfer purpose code'),
@@ -212,7 +212,7 @@ export const createTransferInternalBatchSchema = z.object({
         uid: z.string().describe('UID of an existing transfer to add to the batch'),
       }),
       z.object({
-        amount: z.number().positive().describe('Amount to transfer'),
+        amount: z.number().int().positive().describe('Amount to transfer, in cents, as an integer (e.g., 1000 = R$ 10,00)'),
         financial_account_uid: z.string().describe('UID of the source financial account'),
         scheduled_to: z.string().optional().describe('Scheduled date'),
         transfer_purpose: z.string().optional().describe('Transfer purpose code'),

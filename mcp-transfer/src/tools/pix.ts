@@ -45,7 +45,7 @@ export const listTransferPixTool: ToolDefinition = {
 
 export const createTransferPixTool: ToolDefinition = {
   name: 'create_transfer_pix',
-  description: 'Create a new Pix transfer. Requires amount, financial account UID, and either a Pix key (with key_type and key) or bank account data. The beneficiary information is recommended.',
+  description: 'Create a new Pix transfer, with amount in cents as an integer. Requires amount, financial account UID, and either a Pix key (with key_type and key) or bank account data. The beneficiary information is recommended.',
   inputSchema: createTransferPixSchema,
   handler: async (client, args) => {
     try {
@@ -75,7 +75,7 @@ export const getTransferPixTool: ToolDefinition = {
 
 export const createTransferPixBatchTool: ToolDefinition = {
   name: 'create_transfer_pix_batch',
-  description: 'Create a batch of Pix transfers. Allows creating multiple transfers at once or adding existing transfers to a batch by their UIDs. All transfers in a batch are processed together.',
+  description: 'Create a batch of Pix transfers, with each amount in cents as an integer. Allows creating multiple transfers at once or adding existing transfers to a batch by their UIDs. All transfers in a batch are processed together.',
   inputSchema: createTransferPixBatchSchema,
   handler: async (client, args) => {
     try {

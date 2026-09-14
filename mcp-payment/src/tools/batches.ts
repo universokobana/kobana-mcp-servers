@@ -101,7 +101,7 @@ export const reprovePaymentBatchTool: ToolDefinition = {
 
 export const createPaymentBankBilletBatchTool: ToolDefinition = {
   name: 'create_payment_bank_billet_batch',
-  description: 'Create a batch of bank billet payments. Allows sending multiple bank billet payments at once for approval. Payments can be new or existing (by UID).',
+  description: 'Create a batch of bank billet payments, with each amount in cents as an integer. Allows sending multiple bank billet payments at once for approval. Payments can be new or existing (by UID).',
   inputSchema: createBankBilletBatchSchema,
   handler: async (client, args) => {
     try {
@@ -116,7 +116,7 @@ export const createPaymentBankBilletBatchTool: ToolDefinition = {
 
 export const createPaymentPixBatchTool: ToolDefinition = {
   name: 'create_payment_pix_batch',
-  description: 'Create a batch of Pix payments. Allows sending multiple Pix payments at once for approval. Payments can be new or existing (by UID).',
+  description: 'Create a batch of Pix payments, with each amount in cents as an integer. Allows sending multiple Pix payments at once for approval. Payments can be new or existing (by UID).',
   inputSchema: createPixBatchSchema,
   handler: async (client, args) => {
     try {
@@ -131,7 +131,7 @@ export const createPaymentPixBatchTool: ToolDefinition = {
 
 export const createPaymentDarfBatchTool: ToolDefinition = {
   name: 'create_payment_darf_batch',
-  description: 'Create a batch of DARF payments. Allows sending multiple DARF (federal tax) payments at once for approval. Payments can be new or existing (by UID).',
+  description: 'Create a batch of DARF payments, with each amount in cents as an integer. Allows sending multiple DARF (federal tax) payments at once for approval. Payments can be new or existing (by UID).',
   inputSchema: createDarfBatchSchema,
   handler: async (client, args) => {
     try {
@@ -146,7 +146,7 @@ export const createPaymentDarfBatchTool: ToolDefinition = {
 
 export const createPaymentTaxBatchTool: ToolDefinition = {
   name: 'create_payment_tax_batch',
-  description: 'Create a batch of tax payments. Allows sending multiple tax payments (ITBI, ICMS, ISS, IPTU, FGTS, DARE) at once for approval. Payments can be new or existing (by UID).',
+  description: 'Create a batch of tax payments, with each amount in cents as an integer. Allows sending multiple tax payments (ITBI, ICMS, ISS, IPTU, FGTS, DARE) at once for approval. Payments can be new or existing (by UID).',
   inputSchema: createTaxBatchSchema,
   handler: async (client, args) => {
     try {
@@ -161,7 +161,7 @@ export const createPaymentTaxBatchTool: ToolDefinition = {
 
 export const createPaymentUtilityBatchTool: ToolDefinition = {
   name: 'create_payment_utility_batch',
-  description: 'Create a batch of utility bill payments. Allows sending multiple utility payments at once for approval. Payments can be new or existing (by UID).',
+  description: 'Create a batch of utility bill payments, with each amount in cents as an integer. Allows sending multiple utility payments at once for approval. Payments can be new or existing (by UID).',
   inputSchema: createUtilityBatchSchema,
   handler: async (client, args) => {
     try {

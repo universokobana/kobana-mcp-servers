@@ -44,7 +44,7 @@ export const listPaymentBankBilletsTool: ToolDefinition = {
 
 export const createPaymentBankBilletTool: ToolDefinition = {
   name: 'create_payment_bank_billet',
-  description: 'Create a new bank billet payment. Requires the amount, financial account UID, and barcode/payment line. Optionally schedule for a future date.',
+  description: 'Create a new bank billet payment, with amount in cents as an integer. Requires the amount, financial account UID, and barcode/payment line. Optionally schedule for a future date.',
   inputSchema: createBankBilletSchema,
   handler: async (client, args) => {
     try {

@@ -45,7 +45,7 @@ export const listTransferTedTool: ToolDefinition = {
 
 export const createTransferTedTool: ToolDefinition = {
   name: 'create_transfer_ted',
-  description: 'Create a new TED transfer. Requires amount, financial account UID, and bank account data (COMPE/ISPB, agency, account). The beneficiary information is recommended.',
+  description: 'Create a new TED transfer, with amount in cents as an integer. Requires amount, financial account UID, and bank account data (COMPE/ISPB, agency, account). The beneficiary information is recommended.',
   inputSchema: createTransferTedSchema,
   handler: async (client, args) => {
     try {
@@ -75,7 +75,7 @@ export const getTransferTedTool: ToolDefinition = {
 
 export const createTransferTedBatchTool: ToolDefinition = {
   name: 'create_transfer_ted_batch',
-  description: 'Create a batch of TED transfers. Allows creating multiple transfers at once or adding existing transfers to a batch by their UIDs. All transfers in a batch are processed together.',
+  description: 'Create a batch of TED transfers, with each amount in cents as an integer. Allows creating multiple transfers at once or adding existing transfers to a batch by their UIDs. All transfers in a batch are processed together.',
   inputSchema: createTransferTedBatchSchema,
   handler: async (client, args) => {
     try {
