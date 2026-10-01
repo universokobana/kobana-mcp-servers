@@ -27,7 +27,7 @@ export async function createTransferPix(
   if (idempotencyKey) {
     headers['X-Idempotency-Key'] = idempotencyKey;
   }
-  return client.post<ApiResponse<Transfer>>(BASE_PATH, { transfer: input }, headers);
+  return client.post<ApiResponse<Transfer>>(BASE_PATH, input, headers);
 }
 
 export async function getTransferPix(
@@ -46,5 +46,5 @@ export async function createTransferPixBatch(
   if (idempotencyKey) {
     headers['X-Idempotency-Key'] = idempotencyKey;
   }
-  return client.post<ApiResponse<TransferBatch>>(BATCH_PATH, { transfer_batch: input }, headers);
+  return client.post<ApiResponse<TransferBatch>>(BATCH_PATH, input, headers);
 }

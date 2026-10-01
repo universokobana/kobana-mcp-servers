@@ -27,7 +27,7 @@ export async function createTransferTed(
   if (idempotencyKey) {
     headers['X-Idempotency-Key'] = idempotencyKey;
   }
-  return client.post<ApiResponse<Transfer>>(BASE_PATH, { transfer: input }, headers);
+  return client.post<ApiResponse<Transfer>>(BASE_PATH, input, headers);
 }
 
 export async function getTransferTed(
@@ -46,5 +46,5 @@ export async function createTransferTedBatch(
   if (idempotencyKey) {
     headers['X-Idempotency-Key'] = idempotencyKey;
   }
-  return client.post<ApiResponse<TransferBatch>>(BATCH_PATH, { transfer_batch: input }, headers);
+  return client.post<ApiResponse<TransferBatch>>(BATCH_PATH, input, headers);
 }
