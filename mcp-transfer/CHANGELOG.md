@@ -9,14 +9,49 @@ milestones.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
-## 1.1.1 — Unreleased
+## 1.2.0 — Unreleased
 
 > ### ⚠ Not published yet
 >
-> The repository declares `1.1.1`, but npm still serves **`1.0.1`**. Everything below is
-> merged and verified; only the publish step is outstanding, blocked on registry
-> credentials. **Until it happens, the fixes described here are not in the artifact you
-> install.** This heading becomes `1.1.1 — <date>` when the release actually goes out.
+> The repository declares `1.2.0`, but npm still serves **`1.0.1`**. `1.1.1` was never
+> published either, so everything below — this version's fixes and `1.1.1`'s — is
+> merged and verified but absent from the artifact you install. The publish step is
+> outstanding, blocked on registry credentials. This heading becomes
+> `1.2.0 — <date>` when the release actually goes out.
+
+### Fixed
+
+- **Every Pix, TED and internal transfer creation was rejected with a 422.** The six
+  create calls wrapped their payload in an envelope — `{ transfer: … }` for singles,
+  `{ transfer_batch: … }` for batches — but `specs/transfer.json` declares
+  `new_transfer_*` flat at the root. Rails `wrap_parameters` only skips wrapping when
+  the expected key is already present, and on `/v2/transfer/pix` that key is the
+  resource (`pix`), not the namespace (`transfer`). The key being absent, the envelope
+  was wrapped a second time, strong params matched nothing, and the API reported all
+  eight required fields blank — including the ones the caller had plainly sent, which
+  is what made the error read as a connector that built no body at all. Reported from a
+  real failed transfer on 2026-10-01. `mcp-payment` was never affected: it posts flat,
+  which is what `wrap_parameters` is built to receive.
+
+  **This unblocks a write path that moves money.** `amount` is in **reais**, not
+  cents (`120.99`), and no tool surfaces the `X-Idempotency-Key` that
+  `createTransferPix` already accepts — so a retried call can create a second
+  transfer.
+
+### Changed
+
+- **The four transfer list tools no longer advertise filters.** `list_transfer_pix`,
+  `list_transfer_ted`, `list_transfer_internal` and `list_transfer_batches` declared
+  up to eleven filter params each (`created_from`, `status`, `financial_account_uid`,
+  `external_id`, `tags`, …). Every transfer list endpoint in the spec documents
+  `page` and `per_page` and nothing else, so the server discarded the rest **without
+  an error**: a caller asking for October got September and no indication why. A
+  filter that silently fails to narrow is worse than an absent one, so the schemas are
+  now bare pagination and the descriptions say to page and select client-side.
+
+  Model-facing (TD-009): these four descriptions are carried verbatim into
+  `kia-desktop`'s eval field catalog, so this is a behavior change there, not a copy
+  edit.
 
 
 ### Security
