@@ -173,28 +173,13 @@ export interface Pagination {
 }
 
 // List Filters
-export interface ListTransfersFilters extends PaginationParams {
-  status?: string;
-  registration_status?: string;
-  financial_account_uid?: string;
-  scheduled_from?: string;
-  scheduled_to?: string;
-  confirmed_from?: string;
-  confirmed_to?: string;
-  created_from?: string;
-  created_to?: string;
-  external_id?: string;
-  tags?: string;
-}
+/** The transfer list endpoints document `page` and `per_page` only. Filters
+ * sent beyond those are discarded server-side without an error, so declaring
+ * them here would promise narrowing that never happens. */
+export type ListTransfersFilters = PaginationParams;
 
-export interface ListBatchesFilters extends PaginationParams {
-  status?: string;
-  registration_status?: string;
-  financial_account_uid?: string;
-  transport_kind?: string;
-  created_from?: string;
-  created_to?: string;
-}
+/** Pagination-only, for the same reason as ListTransfersFilters. */
+export type ListBatchesFilters = PaginationParams;
 
 // API Response
 export interface ApiResponse<T> {

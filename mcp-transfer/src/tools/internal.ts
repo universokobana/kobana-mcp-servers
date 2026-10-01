@@ -30,7 +30,7 @@ function formatError(error: unknown): { error: string; details?: unknown } {
 
 export const listTransferInternalTool: ToolDefinition = {
   name: 'list_transfer_internal',
-  description: 'List all internal (between accounts) transfers with optional filters. Supports filtering by status, registration status, financial account, dates, external ID, and tags. Supports pagination.',
+  description: 'List internal (between accounts) transfers, newest first, with pagination. This endpoint does not support filtering: narrow the result by paging through it and selecting client-side.',
   inputSchema: listTransferInternalSchema,
   handler: async (client, args) => {
     try {

@@ -30,7 +30,7 @@ function formatError(error: unknown): { error: string; details?: unknown } {
 
 export const listTransferBatchesTool: ToolDefinition = {
   name: 'list_transfer_batches',
-  description: 'List all transfer batches with optional filters. Supports filtering by status, registration status, financial account, transport kind, and creation dates. Supports pagination.',
+  description: 'List transfer batches, newest first, with pagination. This endpoint does not support filtering: narrow the result by paging through it and selecting client-side.',
   inputSchema: listTransferBatchesSchema,
   handler: async (client, args) => {
     try {

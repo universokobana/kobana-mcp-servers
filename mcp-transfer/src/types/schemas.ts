@@ -33,14 +33,7 @@ export const internalAccountSchema = z.object({
 
 // Transfer Batch Schemas
 
-export const listTransferBatchesSchema = paginationSchema.extend({
-  status: z.string().optional().describe('Filter by status (pending, awaiting_approval, confirmed, reproved, approved, rejected)'),
-  registration_status: z.string().optional().describe('Filter by registration status (pending, requested, confirmed, rejected, failed)'),
-  financial_account_uid: z.string().optional().describe('Filter by financial account UID'),
-  transport_kind: z.string().optional().describe('Filter by transport kind (pix, ted, internal)'),
-  created_from: z.string().optional().describe('Filter by minimum creation date (ISO 8601)'),
-  created_to: z.string().optional().describe('Filter by maximum creation date (ISO 8601)'),
-});
+export const listTransferBatchesSchema = paginationSchema;
 
 export const getTransferBatchSchema = z.object({
   uid: z.string().describe('Unique identifier of the transfer batch'),
@@ -56,19 +49,7 @@ export const reproveTransferBatchSchema = z.object({
 
 // Transfer Pix Schemas
 
-export const listTransferPixSchema = paginationSchema.extend({
-  status: z.string().optional().describe('Filter by status (pending, awaiting_approval, confirmed, reproved, approved, rejected)'),
-  registration_status: z.string().optional().describe('Filter by registration status (pending, requested, confirmed, rejected, failed)'),
-  financial_account_uid: z.string().optional().describe('Filter by financial account UID'),
-  scheduled_from: z.string().optional().describe('Filter by minimum scheduled date (ISO 8601)'),
-  scheduled_to: z.string().optional().describe('Filter by maximum scheduled date (ISO 8601)'),
-  confirmed_from: z.string().optional().describe('Filter by minimum confirmation date (ISO 8601)'),
-  confirmed_to: z.string().optional().describe('Filter by maximum confirmation date (ISO 8601)'),
-  created_from: z.string().optional().describe('Filter by minimum creation date (ISO 8601)'),
-  created_to: z.string().optional().describe('Filter by maximum creation date (ISO 8601)'),
-  external_id: z.string().optional().describe('Filter by external ID'),
-  tags: z.string().optional().describe('Filter by tags (comma-separated)'),
-});
+export const listTransferPixSchema = paginationSchema;
 
 export const createTransferPixSchema = z.object({
   amount: z.number().positive().describe('Amount to transfer (e.g., 100.50)'),
@@ -92,19 +73,7 @@ export const getTransferPixSchema = z.object({
 
 // Transfer TED Schemas
 
-export const listTransferTedSchema = paginationSchema.extend({
-  status: z.string().optional().describe('Filter by status (pending, awaiting_approval, confirmed, reproved, approved, rejected)'),
-  registration_status: z.string().optional().describe('Filter by registration status (pending, requested, confirmed, rejected, failed)'),
-  financial_account_uid: z.string().optional().describe('Filter by financial account UID'),
-  scheduled_from: z.string().optional().describe('Filter by minimum scheduled date (ISO 8601)'),
-  scheduled_to: z.string().optional().describe('Filter by maximum scheduled date (ISO 8601)'),
-  confirmed_from: z.string().optional().describe('Filter by minimum confirmation date (ISO 8601)'),
-  confirmed_to: z.string().optional().describe('Filter by maximum confirmation date (ISO 8601)'),
-  created_from: z.string().optional().describe('Filter by minimum creation date (ISO 8601)'),
-  created_to: z.string().optional().describe('Filter by maximum creation date (ISO 8601)'),
-  external_id: z.string().optional().describe('Filter by external ID'),
-  tags: z.string().optional().describe('Filter by tags (comma-separated)'),
-});
+export const listTransferTedSchema = paginationSchema;
 
 export const createTransferTedSchema = z.object({
   amount: z.number().positive().describe('Amount to transfer (e.g., 100.50)'),
@@ -124,19 +93,7 @@ export const getTransferTedSchema = z.object({
 
 // Transfer Internal Schemas
 
-export const listTransferInternalSchema = paginationSchema.extend({
-  status: z.string().optional().describe('Filter by status (pending, awaiting_approval, confirmed, reproved, approved, rejected)'),
-  registration_status: z.string().optional().describe('Filter by registration status (pending, requested, confirmed, rejected, failed)'),
-  financial_account_uid: z.string().optional().describe('Filter by financial account UID'),
-  scheduled_from: z.string().optional().describe('Filter by minimum scheduled date (ISO 8601)'),
-  scheduled_to: z.string().optional().describe('Filter by maximum scheduled date (ISO 8601)'),
-  confirmed_from: z.string().optional().describe('Filter by minimum confirmation date (ISO 8601)'),
-  confirmed_to: z.string().optional().describe('Filter by maximum confirmation date (ISO 8601)'),
-  created_from: z.string().optional().describe('Filter by minimum creation date (ISO 8601)'),
-  created_to: z.string().optional().describe('Filter by maximum creation date (ISO 8601)'),
-  external_id: z.string().optional().describe('Filter by external ID'),
-  tags: z.string().optional().describe('Filter by tags (comma-separated)'),
-});
+export const listTransferInternalSchema = paginationSchema;
 
 export const createTransferInternalSchema = z.object({
   amount: z.number().positive().describe('Amount to transfer (e.g., 100.50)'),
